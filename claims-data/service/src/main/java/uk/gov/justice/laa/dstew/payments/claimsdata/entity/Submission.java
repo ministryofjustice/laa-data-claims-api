@@ -96,4 +96,8 @@ public class Submission {
   @UpdateTimestamp
   @Column(nullable = false)
   private Instant updatedOn;
+
+  private Instant approvedOn;
+
+  private String approvedByUserId;
 }

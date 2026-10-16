@@ -115,6 +115,30 @@ class SubmissionEventPublisherServiceTest {
 
   @Test
   @DisplayName(
+      "publishSubmissionApprovalEvent publishes approval event with correct payload and attributes")
+  void publish_ApproveSubmissionEvent_sendsMessageWithCorrectPayload() {
+    UUID submissionId = Uuid7.timeBasedUuid();
+
+    submissionEventPublisherService.publishSubmissionApprovalEvent(submissionId);
+
+    var captor = forClass(PublishRequest.class);
+    verify(snsClient).publish(captor.capture());
+
+    PublishRequest publishRequest = captor.getValue();
+    assertThat(publishRequest.message()).contains(submissionId.toString());
+    assertThat(publishRequest.messageAttributes())
+        .containsEntry(
+            "SubmissionEventType",
+            MessageAttributeValue.builder()
+                .dataType("String")
+                .stringValue(SubmissionEventType.APPROVE_SUBMISSION.toString())
+                .build());
+
+    verifyNoMoreInteractions(snsClient);
+  }
+
+  @Test
+  @DisplayName(
       "publishSubmissionValidationSucceededEvent publishes success event with correct payload and attributes")
   void publish_ValidationSucceededEvent_sendsMessageWithCorrectPayload() {
     // given an Sns queue

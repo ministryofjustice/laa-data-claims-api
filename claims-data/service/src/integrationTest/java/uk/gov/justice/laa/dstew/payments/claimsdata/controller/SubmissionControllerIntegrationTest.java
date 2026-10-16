@@ -22,6 +22,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.persistence.EntityManager;
@@ -1997,6 +1998,213 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
                 .stringValue())
         .isEqualTo(SubmissionEventType.INITIAL_SUBMISSION_VALIDATION_SUCCEEDED.toString());
     IntegrationTestUtils.deleteMessagesFromQueue(sqsClient, this.queueUrl, receiveResp);
+  }
+
+  private static Submission.SubmissionBuilder pendingApprovalSubmission(
+      UUID submissionId, String officeAccountNumber, SubmissionStatus status) {
+    return Submission.builder()
+        .id(submissionId)
+        .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+        .officeAccountNumber(officeAccountNumber)
+        .submissionPeriod("APR-2025")
+        .createdByUserId(USER_ID)
+        .providerUserId(USER_ID)
+        .status(status)
+        .createdOn(CREATED_ON)
+        .updatedOn(CREATED_ON);
+  }
+
+  private static String finalValidationPatchBody(UUID submissionId, String officeAccountNumber)
+      throws JsonProcessingException {
+    return finalValidationPatchBody(submissionId, officeAccountNumber, USER_ID);
+  }
+
+  private static String finalValidationPatchBody(
+      UUID submissionId, String officeAccountNumber, String approvingUserId)
+      throws JsonProcessingException {
+    return OBJECT_MAPPER.writeValueAsString(
+        new SubmissionPatch()
+            .submissionId(submissionId)
+            .officeAccountNumber(officeAccountNumber)
+            .createdByUserId(approvingUserId)
+            .status(SubmissionStatus.READY_FOR_FINAL_VALIDATION));
+  }
+
+  @Test
+  @DisplayName("Patching a pending submission to ready for final validation publishes one event")
+  void patchSubmissionQueuesFinalValidationIdempotently() throws Exception {
+    UUID submissionId = Uuid7.timeBasedUuid();
+    submissionRepository.saveAndFlush(
+        pendingApprovalSubmission(
+                submissionId, "APPROVE-OFFICE", SubmissionStatus.VALIDATED_PENDING_APPROVAL)
+            .build());
+
+    mockMvc
+        .perform(
+            patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(finalValidationPatchBody(submissionId, "APPROVE-OFFICE")))
+        .andExpect(status().isNoContent());
+
+    mockMvc
+        .perform(
+            patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(finalValidationPatchBody(submissionId, "APPROVE-OFFICE")))
+        .andExpect(status().isNoContent());
+
+    Submission approved = submissionRepository.findById(submissionId).orElseThrow();
+    assertThat(approved.getStatus()).isEqualTo(SubmissionStatus.READY_FOR_FINAL_VALIDATION);
+    assertThat(approved.getUpdatedByUserId()).isEqualTo(USER_ID);
+    assertThat(approved.getApprovedByUserId()).isEqualTo(USER_ID);
+    assertThat(approved.getApprovedOn()).isNotNull();
+
+    List<Message> approvalEvents =
+        IntegrationTestUtils.drainMessagesOfType(
+            sqsClient, this.queueUrl, SubmissionEventType.APPROVE_SUBMISSION.toString());
+    assertThat(approvalEvents).hasSize(1);
+    assertThat(approvalEvents.getFirst().body()).contains(submissionId.toString());
+  }
+
+  @Test
+  @DisplayName("Patching final validation in any other status returns 400 and does not publish")
+  void patchFinalValidationRejectsIneligibleStatus() throws Exception {
+    UUID submissionId = Uuid7.timeBasedUuid();
+    submissionRepository.saveAndFlush(
+        pendingApprovalSubmission(
+                submissionId, "APPROVE-INVALID-OFFICE", SubmissionStatus.VALIDATION_SUCCEEDED)
+            .build());
+
+    mockMvc
+        .perform(
+            patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(finalValidationPatchBody(submissionId, "APPROVE-INVALID-OFFICE")))
+        .andExpect(status().isBadRequest());
+
+    Submission unchanged = submissionRepository.findById(submissionId).orElseThrow();
+    assertThat(unchanged.getStatus()).isEqualTo(SubmissionStatus.VALIDATION_SUCCEEDED);
+  }
+
+  @Test
+  @DisplayName("Patching final validation for another office returns 403 and changes nothing")
+  void patchFinalValidationRejectsMismatchedOffice() throws Exception {
+    UUID submissionId = Uuid7.timeBasedUuid();
+    submissionRepository.saveAndFlush(
+        pendingApprovalSubmission(
+                submissionId, "APPROVE-OWNING-OFFICE", SubmissionStatus.VALIDATED_PENDING_APPROVAL)
+            .build());
+
+    mockMvc
+        .perform(
+            patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(finalValidationPatchBody(submissionId, "APPROVE-OTHER-OFFICE")))
+        .andExpect(status().isForbidden());
+
+    Submission unchanged = submissionRepository.findById(submissionId).orElseThrow();
+    assertThat(unchanged.getStatus()).isEqualTo(SubmissionStatus.VALIDATED_PENDING_APPROVAL);
+    assertThat(unchanged.getOfficeAccountNumber()).isEqualTo("APPROVE-OWNING-OFFICE");
+  }
+
+  @Test
+  @DisplayName("Patching final validation without an approving user returns 400")
+  void patchFinalValidationRequiresApprovingUser() throws Exception {
+    UUID submissionId = Uuid7.timeBasedUuid();
+    submissionRepository.saveAndFlush(
+        pendingApprovalSubmission(
+                submissionId, "APPROVE-NO-USER", SubmissionStatus.VALIDATED_PENDING_APPROVAL)
+            .build());
+
+    mockMvc
+        .perform(
+            patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(finalValidationPatchBody(submissionId, "APPROVE-NO-USER", null)))
+        .andExpect(status().isBadRequest());
+
+    Submission unchanged = submissionRepository.findById(submissionId).orElseThrow();
+    assertThat(unchanged.getStatus()).isEqualTo(SubmissionStatus.VALIDATED_PENDING_APPROVAL);
+  }
+
+  @Test
+  @DisplayName("Patching final validation without an office account number returns 400")
+  void patchFinalValidationRequiresOffice() throws Exception {
+    UUID submissionId = Uuid7.timeBasedUuid();
+    submissionRepository.saveAndFlush(
+        pendingApprovalSubmission(
+                submissionId, "APPROVE-NO-OFFICE", SubmissionStatus.VALIDATED_PENDING_APPROVAL)
+            .build());
+
+    mockMvc
+        .perform(
+            patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(finalValidationPatchBody(submissionId, null)))
+        .andExpect(status().isBadRequest());
+
+    Submission unchanged = submissionRepository.findById(submissionId).orElseThrow();
+    assertThat(unchanged.getStatus()).isEqualTo(SubmissionStatus.VALIDATED_PENDING_APPROVAL);
+  }
+
+  @Test
+  @DisplayName("The event service can mark a queued submission as final validation in progress")
+  void patchMarksFinalValidationInProgress() throws Exception {
+    UUID submissionId = Uuid7.timeBasedUuid();
+    Instant approvedOn = Instant.parse("2026-01-01T09:00:00Z");
+    submissionRepository.saveAndFlush(
+        pendingApprovalSubmission(
+                submissionId, "APPROVE-IN-PROGRESS", SubmissionStatus.READY_FOR_FINAL_VALIDATION)
+            .approvedOn(approvedOn)
+            .approvedByUserId(USER_ID)
+            .build());
+
+    mockMvc
+        .perform(
+            patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(inProgressPatchBody(submissionId)))
+        .andExpect(status().isNoContent());
+
+    Submission updated = submissionRepository.findById(submissionId).orElseThrow();
+    assertThat(updated.getStatus()).isEqualTo(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS);
+    assertThat(updated.getApprovedOn()).isEqualTo(approvedOn);
+    assertThat(updated.getApprovedByUserId()).isEqualTo(USER_ID);
+  }
+
+  @Test
+  @DisplayName("Marking final validation in progress on a finished submission returns 400")
+  void patchRejectsFinalValidationInProgressForFinishedSubmission() throws Exception {
+    UUID submissionId = Uuid7.timeBasedUuid();
+    submissionRepository.saveAndFlush(
+        pendingApprovalSubmission(
+                submissionId, "APPROVE-FINISHED", SubmissionStatus.VALIDATION_SUCCEEDED)
+            .build());
+
+    mockMvc
+        .perform(
+            patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(inProgressPatchBody(submissionId)))
+        .andExpect(status().isBadRequest());
+
+    Submission unchanged = submissionRepository.findById(submissionId).orElseThrow();
+    assertThat(unchanged.getStatus()).isEqualTo(SubmissionStatus.VALIDATION_SUCCEEDED);
+  }
+
+  private static String inProgressPatchBody(UUID submissionId) throws JsonProcessingException {
+    return OBJECT_MAPPER.writeValueAsString(
+        new SubmissionPatch()
+            .submissionId(submissionId)
+            .status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS));
   }
 
   @Test

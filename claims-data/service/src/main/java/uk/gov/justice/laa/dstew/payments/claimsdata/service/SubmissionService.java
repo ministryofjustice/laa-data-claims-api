@@ -19,11 +19,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationResult;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
+import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.DuplicateSubmissionException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionBadRequestException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionNotFoundException;
+import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionOfficeAuthorisationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.SubmissionValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.SubmissionsResultSetMapper;
@@ -73,6 +75,7 @@ public class SubmissionService
   private final SubmissionsResultSetMapper submissionsResultSetMapper;
   private final SubmissionEventPublisherService submissionEventPublisherService;
   private final StatusCoercer statusCoercer;
+  private final ClaimsApiProperties claimsApiProperties;
   private final AssessmentService assessmentService;
 
   @Override
@@ -205,6 +208,8 @@ public class SubmissionService
         .isNilSubmission(submission.getIsNilSubmission())
         .numberOfClaims(submission.getNumberOfClaims())
         .submitted(OffsetDateTime.ofInstant(submission.getCreatedOn(), ZoneId.systemDefault()))
+        .approvedOn(toOffsetDateTime(submission.getApprovedOn()))
+        .approvedByUserId(submission.getApprovedByUserId())
         .claims(claims)
         .calculatedTotalAmount(BigDecimalUtils.scaleNullable(calculatedTotalAmount, DECIMAL_PLACES))
         .assessedTotalAmount(BigDecimalUtils.scaleNullable(assessedTotalAmount, DECIMAL_PLACES))
@@ -215,6 +220,16 @@ public class SubmissionService
   }
 
   /**
+   * Converts a nullable {@link Instant} to an {@link OffsetDateTime} in the system time zone.
+   *
+   * @param instant the instant to convert, may be null
+   * @return the converted value, or null when the instant is null
+   */
+  private static OffsetDateTime toOffsetDateTime(Instant instant) {
+    return instant == null ? null : OffsetDateTime.ofInstant(instant, ZoneId.systemDefault());
+  }
+
+  /**
    * Partially update a submission.
    *
    * @param id the submission id
@@ -222,7 +237,16 @@ public class SubmissionService
    */
   @Transactional
   public void updateSubmission(UUID id, SubmissionPatch submissionPatch) {
+    if (submissionPatch.getStatus() == SubmissionStatus.READY_FOR_FINAL_VALIDATION) {
+      updateFinalValidationSubmission(id, submissionPatch);
+      return;
+    }
+
     Submission submission = requireEntity(id);
+
+    if (submissionPatch.getStatus() == SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS) {
+      requireAwaitingFinalValidation(submission);
+    }
 
     if (submissionPatch.getCreatedByUserId() == null) {
       log.warn(
@@ -266,6 +290,105 @@ public class SubmissionService
                 validationMessageLogRepository.save(validationLog);
               });
     }
+  }
+
+  private void updateFinalValidationSubmission(UUID id, SubmissionPatch submissionPatch) {
+    requireValidatedPendingApprovalLifecycle();
+
+    Submission submission =
+        submissionRepository
+            .findByIdForUpdate(id)
+            .orElseThrow(() -> entityNotFoundSupplier("No entity found with id: " + id).get());
+
+    requireMatchingOffice(submissionPatch, submission);
+    final String approvingUserId = requireApprovingUser(submissionPatch);
+
+    if (submission.getStatus() == SubmissionStatus.READY_FOR_FINAL_VALIDATION) {
+      return;
+    }
+
+    if (submission.getStatus() != SubmissionStatus.VALIDATED_PENDING_APPROVAL) {
+      throw new SubmissionBadRequestException(
+          "Submission is not eligible for approval in status: " + submission.getStatus());
+    }
+
+    // Queuing final validation is a state transition, not a partial update: only the status and
+    // the approving user are written, so an approval request cannot alter submission content.
+    // The approval is recorded separately from updatedOn/updatedByUserId, which the event service
+    // overwrites as final validation progresses.
+    submission.setStatus(SubmissionStatus.READY_FOR_FINAL_VALIDATION);
+    submission.setUpdatedByUserId(approvingUserId);
+    submission.setApprovedByUserId(approvingUserId);
+    submission.setApprovedOn(Instant.now());
+    submissionRepository.save(submission);
+    TransactionalPublisher.runAfterCommit(
+        () -> submissionEventPublisherService.publishSubmissionApprovalEvent(id));
+  }
+
+  /**
+   * Refuses to mark final validation as in progress unless the submission is waiting for it. The
+   * event service sets this status when it picks up the approval event, and SQS can redeliver that
+   * event, so a submission that has already reached an outcome must not be pulled back into the
+   * lifecycle. Restating the status is permitted so that a redelivered event is a harmless no-op
+   * rather than a failure that ends up in the dead letter queue.
+   */
+  private void requireAwaitingFinalValidation(Submission submission) {
+    SubmissionStatus currentStatus = submission.getStatus();
+    if (currentStatus != SubmissionStatus.READY_FOR_FINAL_VALIDATION
+        && currentStatus != SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS) {
+      throw new SubmissionBadRequestException(
+          "Submission is not awaiting final validation in status: " + currentStatus);
+    }
+  }
+
+  /**
+   * Refuses the transition unless the validated-pending-approval lifecycle is enabled. {@code
+   * READY_FOR_FINAL_VALIDATION} belongs to that lifecycle, and nothing in this service moves a
+   * submission out of it: the outcome is owned by the event service, which only reruns final
+   * validation once the lifecycle is live. Queuing a submission while the lifecycle is disabled
+   * would therefore leave it in a status it can never leave.
+   */
+  private void requireValidatedPendingApprovalLifecycle() {
+    if (!claimsApiProperties.getFeatures().isValidatedPendingApprovalEnabled()) {
+      throw new SubmissionBadRequestException(
+          "Final validation is not enabled: the validated-pending-approval lifecycle is disabled");
+    }
+  }
+
+  /**
+   * Confirms the caller is acting for the office that owns the submission. Authorisation itself is
+   * owned by the calling service; this guards against a caller approving a submission belonging to
+   * a different provider. The office account number is mandatory for this transition, so the check
+   * cannot be skipped by omitting it.
+   */
+  private void requireMatchingOffice(SubmissionPatch submissionPatch, Submission submission) {
+    String requestedOffice = submissionPatch.getOfficeAccountNumber();
+
+    if (requestedOffice == null || requestedOffice.isBlank()) {
+      throw new SubmissionBadRequestException(
+          "Office account number is required to start final validation");
+    }
+
+    if (!requestedOffice.equals(submission.getOfficeAccountNumber())) {
+      // The office held against the submission is deliberately not echoed back to the caller.
+      throw new SubmissionOfficeAuthorisationException(
+          "You do not have access to the office account for this submission");
+    }
+  }
+
+  /**
+   * Returns the user approving the submission, carried on the patch as {@code createdByUserId} (the
+   * user making the request). Approval is a deliberate user action, so it is always attributable
+   * and the transition is refused when the acting user is absent.
+   */
+  private String requireApprovingUser(SubmissionPatch submissionPatch) {
+    String approvingUserId = submissionPatch.getCreatedByUserId();
+
+    if (approvingUserId == null || approvingUserId.isBlank()) {
+      throw new SubmissionBadRequestException("User id is required to start final validation");
+    }
+
+    return approvingUserId;
   }
 
   /**

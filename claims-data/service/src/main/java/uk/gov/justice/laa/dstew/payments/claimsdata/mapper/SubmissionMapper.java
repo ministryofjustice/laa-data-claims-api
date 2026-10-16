@@ -37,6 +37,8 @@ public interface SubmissionMapper {
   @Mapping(target = "officeAccountNumberSortKey", ignore = true)
   @Mapping(target = "updatedByUserId", ignore = true)
   @Mapping(target = "updatedOn", ignore = true)
+  @Mapping(target = "approvedOn", ignore = true)
+  @Mapping(target = "approvedByUserId", ignore = true)
   Submission toSubmission(SubmissionPost submissionPost);
 
   /**
@@ -68,6 +70,9 @@ public interface SubmissionMapper {
    * the patch will be copied. The patch's {@code createdByUserId} represents the user making this
    * patch request. (when present) is recorded as the submission's {@code updatedByUserId}.
    *
+   * <p>The approval fields are never taken from the patch: they record an event the API owns, so
+   * they are written only when a submission is approved for final validation.
+   *
    * @param patch the patch object
    * @param entity the entity to update
    */
@@ -80,6 +85,8 @@ public interface SubmissionMapper {
   @Mapping(target = "createdByUserId", ignore = true)
   @Mapping(target = "updatedByUserId", source = "createdByUserId")
   @Mapping(target = "updatedOn", ignore = true)
+  @Mapping(target = "approvedOn", ignore = true)
+  @Mapping(target = "approvedByUserId", ignore = true)
   void updateSubmissionFromPatch(SubmissionPatch patch, @MappingTarget Submission entity);
 
   /** Map a validation message string to a ValidationMessageLog. */

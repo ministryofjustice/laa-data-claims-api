@@ -75,6 +75,27 @@ public class SubmissionEventPublisherService {
   }
 
   /**
+   * Publishes a request to run final validation for a submission awaiting provider approval.
+   *
+   * @param submissionId the unique identifier for the submission
+   */
+  public void publishSubmissionApprovalEvent(UUID submissionId) {
+    SubmissionValidationMessage submissionValidationMessage =
+        new SubmissionValidationMessage(submissionId);
+
+    try {
+      publishEvent(submissionValidationMessage, SubmissionEventType.APPROVE_SUBMISSION);
+    } catch (JsonProcessingException e) {
+      throw new SubmissionValidationQueuePublishException(
+          "Error when creating approve submission message for submission id ["
+              + submissionId
+              + "] : "
+              + e.getMessage(),
+          e);
+    }
+  }
+
+  /**
    * Publishes a validation-succeeded event for a submission to an Amazon SNS topic.
    *
    * @param submissionId the unique identifier for the submission
