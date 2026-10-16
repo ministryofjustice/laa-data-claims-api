@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @amendments
 @versionGuard
 @dstew-1658
@@ -60,7 +60,7 @@ Feature: Amendment OCC — parent-level end-to-end contract sweep
     And the PDA service will respond "authorised" within the amendment-path timeout
     And the FSP service will return a valid fee calculation for the amendment
 
-  @smoke @DS1658_1
+  @smoke @DS1658_1 @Regression
   Scenario Outline: End-to-end OCC contract sweep — <case> returns the documented outcome
     Given an original claim exists at stored version <storedVersion>
     And an amendment payload built as "<payloadShape>"

@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @amendments
 @persistence
 @dstew-1907
@@ -85,7 +85,7 @@ Feature: Amendment persistence — assemble & write the durable business record
   #   * Deep persistence properties (UUIDv7 byte-format, JSONB round-trip,
   #     sparse-payload preservation, FK integrity) → @DataJpaTest layer
 
-  @DS1907_1
+  @DS1907_1 @Regression
   Scenario: Multi-amendment accumulation — each successful pricing amendment adds one attributed calc-fee row; non-pricing adds none
     Given a claim exists with an original-submission calculated_fee_detail row
     When the following successful amendments are applied in order

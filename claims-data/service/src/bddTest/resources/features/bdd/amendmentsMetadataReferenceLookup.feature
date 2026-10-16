@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @amendments
 @metadata
 @dstew-1594
@@ -30,7 +30,7 @@ Feature: Amendment metadata — reference-data lookup & governance
   #
   # OUT OF SCOPE: Submit-time metadata validation → amendmentsMetadataValidation.feature.
 
-  @smoke @DS1594_1
+  @smoke @DS1594_1 @Regression
   Scenario: Lookup returns active Requested By values in display order
     Given the amendment metadata reference data has been seeded with the BC-574 defaults
     When I request the amendment metadata reference lookup

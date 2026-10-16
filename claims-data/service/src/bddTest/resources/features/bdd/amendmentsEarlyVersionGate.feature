@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @amendments
 @versionGuard
 @dstew-1752
@@ -36,7 +36,7 @@ Feature: Amendment early version gate — pre-processing optimistic-concurrency 
   # amendment event could have been emitted either.
 
   # AC1 — submitted version matches current claim.version → processing continues.
-  @DS1752_1
+  @DS1752_1 @Regression
   Scenario: Submitted version matches current claim.version — the amendment flow continues past the early gate
     Given a fresh amendable claim on a legal-help submission at version 0
     And the PDA service will respond "authorised" within the amendment-path timeout

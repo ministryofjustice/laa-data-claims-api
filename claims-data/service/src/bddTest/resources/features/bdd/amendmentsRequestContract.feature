@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @amendments
 @versionGuard
 @dstew-1751
