@@ -12,7 +12,9 @@ import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import software.amazon.awssdk.services.sqs.SqsClient;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.aop.JaversAuditingAspect;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AmendmentReasonReferenceRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.AssessmentRepository;
@@ -21,9 +23,12 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDeta
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimAmendmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimInterestedDepartmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.GovernmentDepartmentRefRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.InquestDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.RequestedByReferenceRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
@@ -74,6 +79,12 @@ public class AbstractProviderPactTests {
 
   @MockitoBean protected ClientRepository clientRepository;
 
+  @MockitoBean protected InquestDetailRepository inquestDetailRepository;
+
+  @MockitoBean protected GovernmentDepartmentRefRepository governmentDepartmentRefRepository;
+
+  @MockitoBean protected ClaimInterestedDepartmentRepository claimInterestedDepartmentRepository;
+
   @MockitoBean protected MatterStartRepository matterStartRepository;
 
   @MockitoBean protected SubmissionRepository submissionRepository;
@@ -102,4 +113,6 @@ public class AbstractProviderPactTests {
 
   @MockitoBean protected PathMappedEndpoints pathMappedEndpoints;
   @MockitoBean protected DataSource dataSource;
+
+  @MockitoSpyBean protected ValidationService validationService;
 }
