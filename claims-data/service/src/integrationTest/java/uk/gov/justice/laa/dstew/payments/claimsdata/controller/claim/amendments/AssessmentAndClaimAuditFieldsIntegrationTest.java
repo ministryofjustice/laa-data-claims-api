@@ -46,12 +46,11 @@ class AssessmentAndClaimAuditFieldsIntegrationTest extends AbstractAmendmentPatc
   void assessmentCreationTimestampableFieldsOnAssessmentAndClaim() throws Exception {
     Claim seeded = claimRepository.findById(CLAIM_1_ID).orElseThrow();
     seeded.setStatus(ClaimStatus.VALID);
-    claimRepository.saveAndFlush(seeded);
+    Claim amendable = claimRepository.saveAndFlush(seeded);
 
-    var claimUpdatedOnBeforeAssessment =
-        claimRepository.findById(CLAIM_1_ID).orElseThrow().getUpdatedOn();
+    var claimUpdatedOnBeforeAssessment = amendable.getUpdatedOn();
 
-    var request = getAssessmentPost();
+    var request = getAssessmentPost().claimVersion(amendable.getVersion());
 
     MvcResult result =
         mockMvc
