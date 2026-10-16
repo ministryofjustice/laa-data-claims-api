@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @amendments
 @dstew-2353
 Feature: Amendment FSP repricing over real HTTP (MockServer)
@@ -12,6 +12,7 @@ Feature: Amendment FSP repricing over real HTTP (MockServer)
   # nothing-persisted outcome. This closes the coverage gap flagged on PR #475: without a pricing
   # scenario, the migrated client was never exercised over HTTP.
 
+  @DS2353_1 @Regression
   Scenario: Pricing amendment triggers a real FSP fee-calculation call and is accepted
     Given a fresh amendable claim on a legal-help submission at version 0
     And the PDA service will respond "authorised" within the amendment-path timeout
@@ -20,6 +21,7 @@ Feature: Amendment FSP repricing over real HTTP (MockServer)
     Then the amendment is accepted
     And exactly 1 outbound FSP call was made
 
+  @DS2353_2
   Scenario: FSP repricing technical failure rejects the amendment and persists nothing
     Given a fresh amendable claim on a legal-help submission at version 0
     And the PDA service will respond "authorised" within the amendment-path timeout

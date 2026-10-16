@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @amendments
 @metadata
 @dstew-1765
@@ -24,7 +24,7 @@ Feature: Amendment metadata — submit-time validation (Requested By / Amendment
   #
   #               Reference-data lookup contract → amendmentsMetadataReferenceLookup.feature.
 
-  @smoke @DS1765_1
+  @smoke @DS1765_1 @Regression
   Scenario: Valid metadata does not raise any metadata validation error
     Given the amendment metadata reference-data source is available
     And an amendment with metadata

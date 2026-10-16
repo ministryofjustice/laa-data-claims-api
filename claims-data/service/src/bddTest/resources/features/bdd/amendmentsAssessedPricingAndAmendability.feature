@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @amendments
 @classifier
 @dstew-1767
@@ -34,7 +34,7 @@ Feature: Amendment gates — field amendability & assessed-claim pricing restric
   # Field amendability (INVALID_FIELD_NOT_AMENDABLE_FOR_AREA_OF_LAW)
   # ============================================================================
 
-  @smoke @DS1767_1
+  @smoke @DS1767_1 @Regression
   Scenario: Amendable field for the claim's Area of Law does not raise a field-amendability error
     Given an original claim exists with area of law "CRIME_LOWER"
     And the field "client_surname" is on the AaBC amendable-fields list for area of law "CRIME_LOWER"

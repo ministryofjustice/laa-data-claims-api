@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @claimHistory
 @dstew-1811
 Feature: Claim history timeline — contract skeleton & SUBMISSION event
@@ -44,7 +44,7 @@ Feature: Claim history timeline — contract skeleton & SUBMISSION event
   #   * Display-name lookup for user ids → AaBC UI concern
   #   * New Matter Starts events       → excluded from claim timeline
 
-  @smoke @DS1811_1
+  @smoke @DS1811_1 @Regression
   Scenario: SUBMISSION event returned with the common envelope + submission metadata
     Given a claim exists that has been submitted but never amended, assessed or voided
     And the claim has the following stored values

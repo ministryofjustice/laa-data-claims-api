@@ -20,6 +20,29 @@ Run all BDD scenarios in `features/bdd`:
 
 Use `-Dcucumber.filter.tags='EXPRESSION'`.
 
+### Regression packs
+
+Every feature file carries `@Full_Regression` at feature level, so the whole
+suite is selectable with one tag. A curated subset of end-to-end happy-path
+scenarios (max 20% of executed scenarios, Scenario Outlines counted per
+example row) also carries `@Regression` at scenario level.
+
+| Tag | Contents | Where it runs |
+|---|---|---|
+| `@Regression` | E2E happy-path pack (~20% of the suite) | PRs (`deploy-uat-preview.yml`) and `main` (`deploy-main.yml`) |
+| `@Full_Regression` | Every BDD scenario | Nightly Mon–Fri + manual dispatch (`bdd-full-regression-nightly.yml`) |
+
+```zsh
+./gradlew :claims-data:service:bddTest -Dcucumber.filter.tags='@Regression'
+./gradlew :claims-data:service:bddTest -Dcucumber.filter.tags='@Full_Regression'
+```
+
+When adding a new scenario, leave it in `@Full_Regression` only (inherited from
+the feature) unless it is a key E2E happy path; add `@Regression` to it only if
+the pack stays within the 20% cap.
+
+### Other examples
+
 Run only `@api` scenarios:
 
 ```zsh
