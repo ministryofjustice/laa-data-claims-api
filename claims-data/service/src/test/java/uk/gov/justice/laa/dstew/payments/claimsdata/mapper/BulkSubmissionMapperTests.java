@@ -2,8 +2,12 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.mapper;
 
 import static org.apache.commons.lang3.BooleanUtils.toBooleanObject;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AREA_OF_LAW;
 
 import java.util.Collections;
@@ -15,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFieldConversionException;
@@ -49,21 +54,25 @@ class BulkSubmissionMapperTests {
 
     assertThrows(
         IllegalArgumentException.class,
-        () -> bulkSubmissionMapper.toBulkSubmissionDetails(csvSubmission),
+        () -> bulkSubmissionMapper.toBulkSubmissionDetails(csvSubmission, false),
         "Unsupported submission type");
   }
 
   @ParameterizedTest(
-      name = "Should map csv submission to bulk submission with boolean fields set to: {1}")
-  @CsvSource({"Y,true", "N,false", ","})
-  void shouldMapCsvSubmissionToBulkSubmission(String fieldValue, String expectedValue) {
-    FileSubmission submission = createCsvSubmission(createCsvOutcome(fieldValue));
+      name = "Should map csv submission with boolean value {1} and inquests enabled: {2}")
+  @CsvSource({"Y,true,true", "N,false,true", ",,true", "Y,true,false", "N,false,false", ",,false"})
+  void shouldMapCsvSubmissionToBulkSubmission(
+      String fieldValue, String expectedValue, boolean inquestFeatureEnabled) {
+    FileSubmission submission =
+        createCsvSubmission(
+            createCsvOutcome(
+                Collections.singletonMap("inqClientMeansTested", fieldValue), fieldValue, true));
 
     GetBulkSubmission200ResponseDetails expected =
-        getExpectedBulkSubmissionDetails(toBooleanObject(expectedValue));
+        getExpectedBulkSubmissionDetails(toBooleanObject(expectedValue), inquestFeatureEnabled);
 
     GetBulkSubmission200ResponseDetails actual =
-        bulkSubmissionMapper.toBulkSubmissionDetails(submission);
+        bulkSubmissionMapper.toBulkSubmissionDetails(submission, inquestFeatureEnabled);
 
     assertEquals(expected, actual);
   }
@@ -84,17 +93,18 @@ class BulkSubmissionMapperTests {
     "ircSurgery, IRC Surgery, FALSE",
     "client2LegallyAided, Client 2 Legally Aided, FALSE",
     "eligibleClient, Eligible Client, X",
-    "youthCourt, Youth Court, Z"
+    "youthCourt, Youth Court, Z",
+    "inqClientMeansTested, Is Client Means Tested, X"
   })
   void shouldIncludeFieldContextWhenCsvOutcomeBooleanConversionFails(
       String fieldName, String errorFieldName, String invalidValue) {
     FileSubmission submission =
-        createCsvSubmission(createCsvOutcome(Map.of(fieldName, invalidValue), "Y"));
+        createCsvSubmission(createCsvOutcome(Map.of(fieldName, invalidValue), "Y", true));
 
     BulkSubmissionFieldConversionException exception =
         assertThrows(
             BulkSubmissionFieldConversionException.class,
-            () -> bulkSubmissionMapper.toBulkSubmissionDetails(submission));
+            () -> bulkSubmissionMapper.toBulkSubmissionDetails(submission, true));
 
     assertEquals(errorFieldName, exception.getExceptionMessage());
     assertEquals(invalidValue, exception.getRejectedValue());
@@ -131,43 +141,178 @@ class BulkSubmissionMapperTests {
   void shouldIncludeErrorMessageAndFieldContextWhenCsvOutcomeNumericConversionFails(
       String fieldName, String invalidValue, String exceptionMessage) {
     FileSubmission submission =
-        createCsvSubmission(createCsvOutcome(Map.of(fieldName, invalidValue), "Y"));
+        createCsvSubmission(createCsvOutcome(Map.of(fieldName, invalidValue), "Y", true));
 
     BulkSubmissionFieldConversionException exception =
         assertThrows(
             BulkSubmissionFieldConversionException.class,
-            () -> bulkSubmissionMapper.toBulkSubmissionDetails(submission));
+            () -> bulkSubmissionMapper.toBulkSubmissionDetails(submission, false));
 
     assertEquals(exceptionMessage, exception.getExceptionMessage());
     assertEquals(invalidValue, exception.getRejectedValue());
   }
 
   @ParameterizedTest(
-      name = "Should map xml submission to bulk submission with boolean fields set to: {1}")
-  @CsvSource({"Y,true", "N,false", ","})
-  void shouldMapXmlSubmissionToBulkSubmission(String fieldValue, String expectedValue) {
-    FileSubmission submission =
-        new XmlSubmission(
-            null,
-            new XmlOffice(
-                "account",
-                new XmlSchedule(
-                    "submissionPeriod",
-                    AREA_OF_LAW.getValue(),
-                    "scheduleNum",
-                    getXmlOutcomes(fieldValue),
-                    getXmlMatterStarts(),
-                    List.of(
-                        new XmlImmigrationClr(
-                            Map.of("CLR_FIELD", "value", "CLR_FIELD2", "value2"))))));
+      name = "Should map xml submission with boolean value {1} and inquests enabled: {2}")
+  @CsvSource({"Y,true,true", "N,false,true", ",,true", "Y,true,false", "N,false,false", ",,false"})
+  void shouldMapXmlSubmissionToBulkSubmission(
+      String fieldValue, String expectedValue, boolean inquestFeatureEnabled) {
+    FileSubmission submission = createXmlSubmission(getXmlOutcomes(fieldValue, true));
 
     GetBulkSubmission200ResponseDetails expected =
-        getExpectedBulkSubmissionDetails(toBooleanObject(expectedValue));
+        getExpectedBulkSubmissionDetails(toBooleanObject(expectedValue), inquestFeatureEnabled);
 
     GetBulkSubmission200ResponseDetails actual =
-        bulkSubmissionMapper.toBulkSubmissionDetails(submission);
+        bulkSubmissionMapper.toBulkSubmissionDetails(submission, inquestFeatureEnabled);
 
     assertEquals(expected, actual);
+  }
+
+  @ParameterizedTest(
+      name = "Should handle invalid means-tested input for {0}, inquests enabled: {1}")
+  @CsvSource({"CSV,true", "CSV,false", "XML,true", "XML,false"})
+  void shouldValidateInquestMeansTestedOnlyWhenEnabled(
+      String format, boolean inquestFeatureEnabled) {
+    Map<String, String> overrides = Map.of("inqClientMeansTested", "X");
+    FileSubmission submission =
+        format.equals("CSV")
+            ? createCsvSubmission(createCsvOutcome(overrides, "Y", true))
+            : createXmlSubmission(List.of(createXmlOutcome(overrides, "Y")));
+
+    if (inquestFeatureEnabled) {
+      BulkSubmissionFieldConversionException exception =
+          assertThrows(
+              BulkSubmissionFieldConversionException.class,
+              () -> bulkSubmissionMapper.toBulkSubmissionDetails(submission, true));
+      assertEquals("Is Client Means Tested", exception.getExceptionMessage());
+      assertEquals("X", exception.getRejectedValue());
+    } else {
+      var outcome =
+          bulkSubmissionMapper.toBulkSubmissionDetails(submission, false).getOutcomes().getFirst();
+      assertNull(outcome.getIsClientMeansTested());
+      assertNull(outcome.getDeceasedForename());
+      assertNull(outcome.getDeceasedSurname());
+      assertNull(outcome.getDeceasedDateOfDeath());
+      assertNull(outcome.getCoronersInquestReference());
+      assertNull(outcome.getInterestedDepartments());
+      assertEquals("matterType", outcome.getMatterType());
+      assertEquals(Boolean.TRUE, outcome.getVatIndicator());
+    }
+  }
+
+  private XmlSubmission createXmlSubmission(List<XmlOutcome> outcomes) {
+    return new XmlSubmission(
+        null,
+        new XmlOffice(
+            "account",
+            new XmlSchedule(
+                "submissionPeriod",
+                AREA_OF_LAW.getValue(),
+                "scheduleNum",
+                outcomes,
+                getXmlMatterStarts(),
+                List.of(
+                    new XmlImmigrationClr(Map.of("CLR_FIELD", "value", "CLR_FIELD2", "value2"))))));
+  }
+
+  @Test
+  void shouldMapAllXmlGovernmentDepartmentsInOrder() {
+    XmlOutcome outcome =
+        createXmlOutcome(
+            Map.of(
+                "governmentDepartment1", "department1",
+                "governmentDepartment2", "department2",
+                "governmentDepartment3", "department3",
+                "governmentDepartment4", "department4",
+                "governmentDepartment5", "department5",
+                "governmentDepartment6", "department6",
+                "governmentDepartment7", "department7",
+                "governmentDepartment8", "department8",
+                "governmentDepartment9", "department9",
+                "governmentDepartment10", "department10"),
+            "Y");
+
+    assertEquals(
+        List.of(
+            "department1",
+            "department2",
+            "department3",
+            "department4",
+            "department5",
+            "department6",
+            "department7",
+            "department8",
+            "department9",
+            "department10"),
+        bulkSubmissionMapper.toBulkSubmissionOutcome(outcome, true).getInterestedDepartments());
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void shouldInvokeXmlInterestedDepartmentsMappingOnlyWhenEnabled(boolean inquestFeatureEnabled) {
+    BulkSubmissionMapper mapper = spy(new BulkSubmissionMapperImpl());
+    XmlOutcome outcome = createXmlOutcome(Map.of("governmentDepartment1", "department1"), "Y");
+
+    var actual = mapper.toBulkSubmissionOutcome(outcome, inquestFeatureEnabled);
+
+    if (inquestFeatureEnabled) {
+      assertEquals(List.of("department1"), actual.getInterestedDepartments());
+    } else {
+      assertNull(actual.getInterestedDepartments());
+    }
+    verify(mapper, times(inquestFeatureEnabled ? 1 : 0)).mapInterestedDepartments(outcome);
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void shouldInvokeCsvInterestedDepartmentsMappingOnlyWhenEnabled(boolean inquestFeatureEnabled) {
+    BulkSubmissionMapper mapper = spy(new BulkSubmissionMapperImpl());
+    CsvOutcome outcome = createCsvOutcome("Y", true);
+
+    var actual = mapper.toBulkSubmissionOutcome(outcome, inquestFeatureEnabled);
+
+    if (inquestFeatureEnabled) {
+      assertEquals(
+          List.of(
+              "governmentDepartment1",
+              "governmentDepartment2",
+              "governmentDepartment3",
+              "governmentDepartment4",
+              "governmentDepartment5",
+              "governmentDepartment6",
+              "governmentDepartment7",
+              "governmentDepartment8",
+              "governmentDepartment9",
+              "governmentDepartment10"),
+          actual.getInterestedDepartments());
+    } else {
+      assertNull(actual.getInterestedDepartments());
+    }
+    verify(mapper, times(inquestFeatureEnabled ? 1 : 0)).mapInterestedDepartments(outcome);
+  }
+
+  @Test
+  void shouldMapMissingXmlGovernmentDepartmentsToEmptyList() {
+    assertEquals(
+        List.of(),
+        bulkSubmissionMapper
+            .toBulkSubmissionOutcome(createXmlOutcome(Map.of(), "Y"), true)
+            .getInterestedDepartments());
+  }
+
+  @Test
+  void shouldOmitBlankXmlGovernmentDepartments() {
+    XmlOutcome outcome =
+        createXmlOutcome(
+            Map.of(
+                "governmentDepartment1", "first",
+                "governmentDepartment2", " ",
+                "governmentDepartment10", "last"),
+            "Y");
+
+    assertEquals(
+        List.of("first", "last"),
+        bulkSubmissionMapper.toBulkSubmissionOutcome(outcome, true).getInterestedDepartments());
   }
 
   @ParameterizedTest(name = "Error message should be: {2} when monetary field {0} is not valid")
@@ -203,7 +348,7 @@ class BulkSubmissionMapperTests {
     var actualException =
         assertThrows(
             BulkSubmissionFieldConversionException.class,
-            () -> bulkSubmissionMapper.toBulkSubmissionOutcome(xmlOutCome));
+            () -> bulkSubmissionMapper.toBulkSubmissionOutcome(xmlOutCome, true));
 
     assertEquals(expectedExceptionMessage, actualException.getMessage());
     assertEquals(invalidValue, actualException.getRejectedValue());
@@ -221,7 +366,7 @@ class BulkSubmissionMapperTests {
             3));
   }
 
-  private static List<XmlOutcome> getXmlOutcomes(String fieldValue) {
+  private static List<XmlOutcome> getXmlOutcomes(String fieldValue, boolean inquestFeatureEnabled) {
     return List.of(
         new XmlOutcome(
             "matterType",
@@ -325,7 +470,22 @@ class BulkSubmissionMapperTests {
             "localAuthorityNumber",
             "paNumber",
             "0.10",
-            "08/01/2000"));
+            "08/01/2000",
+            inquestFeatureEnabled ? fieldValue : null,
+            inquestFeatureEnabled ? "deceasedFirstName" : null,
+            inquestFeatureEnabled ? "deceasedSurname" : null,
+            inquestFeatureEnabled ? "09/01/2000" : null,
+            inquestFeatureEnabled ? "inquestReferenceNumber" : null,
+            inquestFeatureEnabled ? "governmentDepartment1" : null,
+            inquestFeatureEnabled ? "governmentDepartment2" : null,
+            inquestFeatureEnabled ? "governmentDepartment3" : null,
+            inquestFeatureEnabled ? "governmentDepartment4" : null,
+            inquestFeatureEnabled ? "governmentDepartment5" : null,
+            inquestFeatureEnabled ? "governmentDepartment6" : null,
+            inquestFeatureEnabled ? "governmentDepartment7" : null,
+            inquestFeatureEnabled ? "governmentDepartment8" : null,
+            inquestFeatureEnabled ? "governmentDepartment9" : null,
+            inquestFeatureEnabled ? "governmentDepartment10" : null));
   }
 
   private CsvSubmission createCsvSubmission(CsvOutcome outcome) {
@@ -345,11 +505,35 @@ class BulkSubmissionMapperTests {
         List.of(Map.of("CLR_FIELD", "value", "CLR_FIELD2", "value2")));
   }
 
-  private CsvOutcome createCsvOutcome(String fieldValue) {
-    return createCsvOutcome(Collections.emptyMap(), fieldValue);
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void shouldPopulateCsvFixtureInquestFieldsOnlyWhenEnabled(boolean inquestEnabledFlag) {
+    CsvOutcome outcome = createCsvOutcome("Y", inquestEnabledFlag);
+
+    assertEquals(inquestEnabledFlag ? "Y" : null, outcome.inqClientMeansTested());
+    assertEquals(inquestEnabledFlag ? "deceasedFirstName" : null, outcome.deceasedFirstName());
+    assertEquals(inquestEnabledFlag ? "deceasedSurname" : null, outcome.deceasedSurname());
+    assertEquals(inquestEnabledFlag ? "09/01/2000" : null, outcome.dateOfDeath());
+    assertEquals(inquestEnabledFlag ? "inquestReferenceNumber" : null, outcome.inquestRef());
+    assertEquals(inquestEnabledFlag ? "governmentDepartment1" : null, outcome.govDept1());
+    assertEquals(inquestEnabledFlag ? "governmentDepartment2" : null, outcome.govDept2());
+    assertEquals(inquestEnabledFlag ? "governmentDepartment3" : null, outcome.govDept3());
+    assertEquals(inquestEnabledFlag ? "governmentDepartment4" : null, outcome.govDept4());
+    assertEquals(inquestEnabledFlag ? "governmentDepartment5" : null, outcome.govDept5());
+    assertEquals(inquestEnabledFlag ? "governmentDepartment6" : null, outcome.govDept6());
+    assertEquals(inquestEnabledFlag ? "governmentDepartment7" : null, outcome.govDept7());
+    assertEquals(inquestEnabledFlag ? "governmentDepartment8" : null, outcome.govDept8());
+    assertEquals(inquestEnabledFlag ? "governmentDepartment9" : null, outcome.govDept9());
+    assertEquals(inquestEnabledFlag ? "governmentDepartment10" : null, outcome.govDept10());
+    assertEquals("matterType", outcome.matterType());
   }
 
-  private CsvOutcome createCsvOutcome(Map<String, String> overrides, String fieldValue) {
+  private CsvOutcome createCsvOutcome(String fieldValue, boolean inquestEnabledFlag) {
+    return createCsvOutcome(Collections.emptyMap(), fieldValue, inquestEnabledFlag);
+  }
+
+  private CsvOutcome createCsvOutcome(
+      Map<String, String> overrides, String fieldValue, boolean inquestEnabledFlag) {
     String adviceTime = overrides.getOrDefault("adviceTime", "1");
     String travelTime = overrides.getOrDefault("travelTime", "2");
     String waitingTime = overrides.getOrDefault("waitingTime", "3");
@@ -391,6 +575,32 @@ class BulkSubmissionMapperTests {
     String client2LegallyAided = overrides.getOrDefault("client2LegallyAided", fieldValue);
     String eligibleClient = overrides.getOrDefault("eligibleClient", fieldValue);
     String youthCourt = overrides.getOrDefault("youthCourt", fieldValue);
+    String inqClientMeansTested = overrides.getOrDefault("inqClientMeansTested", "Y");
+    String deceasedFirstName = overrides.getOrDefault("deceasedFirstName", "deceasedFirstName");
+    String deceasedSurname = overrides.getOrDefault("deceasedSurname", "deceasedSurname");
+    String dateOfDeath = overrides.getOrDefault("dateOfDeath", "09/01/2000");
+    String inquestReferenceNumber =
+        overrides.getOrDefault("inquestReferenceNumber", "inquestReferenceNumber");
+    String governmentDepartment1 =
+        overrides.getOrDefault("governmentDepartment1", "governmentDepartment1");
+    String governmentDepartment2 =
+        overrides.getOrDefault("governmentDepartment2", "governmentDepartment2");
+    String governmentDepartment3 =
+        overrides.getOrDefault("governmentDepartment3", "governmentDepartment3");
+    String governmentDepartment4 =
+        overrides.getOrDefault("governmentDepartment4", "governmentDepartment4");
+    String governmentDepartment5 =
+        overrides.getOrDefault("governmentDepartment5", "governmentDepartment5");
+    String governmentDepartment6 =
+        overrides.getOrDefault("governmentDepartment6", "governmentDepartment6");
+    String governmentDepartment7 =
+        overrides.getOrDefault("governmentDepartment7", "governmentDepartment7");
+    String governmentDepartment8 =
+        overrides.getOrDefault("governmentDepartment8", "governmentDepartment8");
+    String governmentDepartment9 =
+        overrides.getOrDefault("governmentDepartment9", "governmentDepartment9");
+    String governmentDepartment10 =
+        overrides.getOrDefault("governmentDepartment10", "governmentDepartment10");
     return new CsvOutcome(
         "matterType",
         "feeCode",
@@ -493,7 +703,22 @@ class BulkSubmissionMapperTests {
         "localAuthorityNumber",
         "paNumber",
         excessTravelCosts,
-        "08/01/2000");
+        "08/01/2000",
+        inquestEnabledFlag ? inqClientMeansTested : null,
+        inquestEnabledFlag ? deceasedFirstName : null,
+        inquestEnabledFlag ? deceasedSurname : null,
+        inquestEnabledFlag ? dateOfDeath : null,
+        inquestEnabledFlag ? inquestReferenceNumber : null,
+        inquestEnabledFlag ? governmentDepartment1 : null,
+        inquestEnabledFlag ? governmentDepartment2 : null,
+        inquestEnabledFlag ? governmentDepartment3 : null,
+        inquestEnabledFlag ? governmentDepartment4 : null,
+        inquestEnabledFlag ? governmentDepartment5 : null,
+        inquestEnabledFlag ? governmentDepartment6 : null,
+        inquestEnabledFlag ? governmentDepartment7 : null,
+        inquestEnabledFlag ? governmentDepartment8 : null,
+        inquestEnabledFlag ? governmentDepartment9 : null,
+        inquestEnabledFlag ? governmentDepartment10 : null);
   }
 
   private XmlOutcome createXmlOutcome(Map<String, String> overrides, String fieldValue) {
@@ -538,6 +763,21 @@ class BulkSubmissionMapperTests {
     String client2LegallyAided = overrides.getOrDefault("client2LegallyAided", fieldValue);
     String eligibleClient = overrides.getOrDefault("eligibleClient", fieldValue);
     String youthCourt = overrides.getOrDefault("youthCourt", fieldValue);
+    String inqClientMeansTested = overrides.getOrDefault("inqClientMeansTested", fieldValue);
+    String deceasedFirstName = overrides.getOrDefault("deceasedFirstName", "");
+    String deceasedSurname = overrides.getOrDefault("deceasedSurname", "");
+    String dateOfDeath = overrides.getOrDefault("dateOfDeath", "");
+    String inquestReferenceNumber = overrides.getOrDefault("inquestReferenceNumber", "");
+    String governmentDepartment1 = overrides.getOrDefault("governmentDepartment1", "");
+    String governmentDepartment2 = overrides.getOrDefault("governmentDepartment2", "");
+    String governmentDepartment3 = overrides.getOrDefault("governmentDepartment3", "");
+    String governmentDepartment4 = overrides.getOrDefault("governmentDepartment4", "");
+    String governmentDepartment5 = overrides.getOrDefault("governmentDepartment5", "");
+    String governmentDepartment6 = overrides.getOrDefault("governmentDepartment6", "");
+    String governmentDepartment7 = overrides.getOrDefault("governmentDepartment7", "");
+    String governmentDepartment8 = overrides.getOrDefault("governmentDepartment8", "");
+    String governmentDepartment9 = overrides.getOrDefault("governmentDepartment9", "");
+    String governmentDepartment10 = overrides.getOrDefault("governmentDepartment10", "");
     return new XmlOutcome(
         "matterType",
         "feeCode",
@@ -640,15 +880,33 @@ class BulkSubmissionMapperTests {
         "localAuthorityNumber",
         "paNumber",
         excessTravelCosts,
-        "08/01/2000");
+        "08/01/2000",
+        inqClientMeansTested,
+        deceasedFirstName,
+        deceasedSurname,
+        dateOfDeath,
+        inquestReferenceNumber,
+        governmentDepartment1,
+        governmentDepartment2,
+        governmentDepartment3,
+        governmentDepartment4,
+        governmentDepartment5,
+        governmentDepartment6,
+        governmentDepartment7,
+        governmentDepartment8,
+        governmentDepartment9,
+        governmentDepartment10);
   }
 
   private GetBulkSubmission200ResponseDetails getExpectedBulkSubmissionDetails(
-      Boolean expectedBooleanValue) {
+      Boolean expectedBooleanValue, boolean inquestFeatureEnabled) {
     var expectedBulkSubmissionOffice = ClaimsDataTestUtil.getBulkSubmissionOffice();
     var expectedBulkSubmissionSchedule = ClaimsDataTestUtil.getBulkSubmissionSchedule();
     var expectedBulkSubmissionOutcome =
-        ClaimsDataTestUtil.getBulkSubmissionOutcome(expectedBooleanValue);
+        ClaimsDataTestUtil.getBulkSubmissionOutcome(expectedBooleanValue, inquestFeatureEnabled);
+    if (inquestFeatureEnabled) {
+      expectedBulkSubmissionOutcome.isClientMeansTested(expectedBooleanValue);
+    }
     var expectedBulkSubmissionMatterStart = ClaimsDataTestUtil.getBulkSubmissionMatterStart();
     List<Map<String, String>> expectedImmigrationClrRows =
         ClaimsDataTestUtil.getImmigrationClrRows();

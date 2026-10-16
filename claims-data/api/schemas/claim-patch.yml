@@ -105,6 +105,10 @@ fee_calculation_patch:
       type: number
     travel_and_waiting_costs_amount:
       type: number
+    is_inquest:
+      type: boolean
+      nullable: true
+      description: Whether FSP treated the claim as an Inquest claim when calculating the fee.
     bolt_on_details:
       $ref: '#/bolt_on_patch'
 

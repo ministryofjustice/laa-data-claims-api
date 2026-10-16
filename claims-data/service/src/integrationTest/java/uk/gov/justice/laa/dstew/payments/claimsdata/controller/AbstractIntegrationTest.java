@@ -59,6 +59,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimCase;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Client;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.GovernmentDepartmentRef;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ValidationMessageLog;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.AreaOfLaw;
@@ -74,9 +75,12 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.repository.BulkSubmissionRep
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimAmendmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimCaseRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimInterestedDepartmentRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimSummaryFeeRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClientRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.GovernmentDepartmentRefRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.InquestDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.MatterStartRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ValidationMessageLogRepository;
@@ -106,6 +110,11 @@ public abstract class AbstractIntegrationTest {
   // seed literals are deliberately left inline - they are arbitrary, single-use, unasserted fixture
   // data, so naming them would add noise without any drift or de-duplication benefit. These are the
   // CLAIM_1 before-state values the amendment integration tests assert on.
+  // Display labels of government departments seeded by migration V52.
+  protected static final String DEPARTMENT_MINISTRY_OF_JUSTICE = "Ministry of Justice";
+  protected static final String DEPARTMENT_HEALTH_AND_SOCIAL_CARE =
+      "Department for Health and Social Care";
+  protected static final String DEPARTMENT_HOME_OFFICE = "Home Office";
   protected static final String SEEDED_CLIENT_FORENAME = "Alice";
   protected static final String SEEDED_UNIQUE_CLIENT_NUMBER = "01011990/A/BCDE";
   protected static final String SEEDED_CASE_ID = "123";
@@ -121,6 +130,9 @@ public abstract class AbstractIntegrationTest {
   @Autowired protected ClaimRepository claimRepository;
   @Autowired protected ClaimSummaryFeeRepository claimSummaryFeeRepository;
   @Autowired protected ClientRepository clientRepository;
+  @Autowired protected InquestDetailRepository inquestDetailRepository;
+  @Autowired protected ClaimInterestedDepartmentRepository claimInterestedDepartmentRepository;
+  @Autowired protected GovernmentDepartmentRefRepository governmentDepartmentRefRepository;
   @Autowired protected CalculatedFeeDetailRepository calculatedFeeDetailRepository;
   @Autowired protected MatterStartRepository matterStartRepository;
   @Autowired protected ClaimCaseRepository claimCaseRepository;
@@ -186,11 +198,20 @@ public abstract class AbstractIntegrationTest {
     claimAmendmentRepository.deleteAll();
     claimCaseRepository.deleteAll();
     clientRepository.deleteAll();
+    inquestDetailRepository.deleteAll();
+    claimInterestedDepartmentRepository.deleteAll();
     claimSummaryFeeRepository.deleteAll();
     matterStartRepository.deleteAll();
     claimRepository.deleteAll();
     submissionRepository.deleteAll();
     bulkSubmissionRepository.deleteAll();
+  }
+
+  /** Looks up a Flyway-seeded government department (V52) by its display label. */
+  protected GovernmentDepartmentRef findSeededDepartmentByLabel(String displayLabel) {
+    return governmentDepartmentRefRepository
+        .findByDisplayLabelIgnoreCase(displayLabel)
+        .orElseThrow();
   }
 
   void createBulkSubmission() {
