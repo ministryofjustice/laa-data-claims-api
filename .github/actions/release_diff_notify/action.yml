@@ -1,0 +1,160 @@
+name: Release diff and notify
+description: >
+  Generates a PR-based release diff between a "from" and "to" git ref, and (if
+  a Slack webhook is supplied and there's at least one PR to report) posts a
+  summary to Slack with links to each PR and its Jira ticket (derived from the
+  PR title). Requires the calling job to have already checked out the
+  repository (fetch-depth: 0, fetch-tags: true) at the ref being diffed "to".
+  To diff against what was deployed immediately prior to a deployment, use
+  ./.github/actions/get_deployed_git_ref *before* deploying to capture
+  "from-ref", then call this action *after* the deployment succeeds.
+
+inputs:
+  from-ref:
+    description: "Git ref/SHA to diff from (e.g. output of get_deployed_git_ref, captured before deploying)"
+    required: true
+  to-ref:
+    description: "Git ref/SHA to diff against (e.g. PR head SHA or github.sha)"
+    required: true
+  jira-base-url:
+    description: "Base URL to prepend to a ticket ID to build its Jira link"
+    required: false
+    default: "https://dsdmoj.atlassian.net/browse/"
+  environment-name:
+    description: "Human-readable environment name for the Slack header (e.g. 'UAT')"
+    required: true
+  to-label:
+    description: >
+      Human-readable label for the version/ref being released (e.g. a PR
+      number or version tag). Defaults to to-ref, shortened to 7 characters
+      if it looks like a full commit SHA.
+    required: false
+    default: ""
+  release-by:
+    description: "Who to credit as having triggered this release. Defaults to the GitHub user who directly triggered this workflow run."
+    required: false
+    default: ""
+  slack-webhook-url:
+    description: "Slack incoming webhook URL. If empty, the Slack notification step is skipped."
+    required: false
+    default: ""
+
+outputs:
+  pull-request-count:
+    description: "Number of PRs found in the release diff"
+    value: ${{ steps.release_diff.outputs.pull-request-count }}
+  json-file:
+    description: "Path to the generated release diff JSON"
+    value: ${{ steps.release_diff.outputs.json-file }}
+
+runs:
+  using: composite
+  steps:
+    - name: Validate inputs
+      shell: bash
+      env:
+        FROM_REF: ${{ inputs.from-ref }}
+      run: |
+        if [ -z "$FROM_REF" ]; then
+          echo "::warning::from-ref is empty (likely because a prior step failed to capture it) - skipping release diff and Slack notification."
+        fi
+
+    - name: Generate release diff
+      id: release_diff
+      if: inputs.from-ref != ''
+      continue-on-error: true
+      uses: ./.github/actions/release_diff
+      with:
+        from: ${{ inputs.from-ref }}
+        to: ${{ inputs.to-ref }}
+
+    - name: Show release diff
+      if: inputs.from-ref != '' && steps.release_diff.outcome == 'success'
+      continue-on-error: true
+      shell: bash
+      env:
+        JSON_FILE: ${{ steps.release_diff.outputs.json-file }}
+      run: |
+        echo "Generated release data:"
+        cat "$JSON_FILE"
+
+    - name: Build Slack message content
+      id: build_list
+      if: steps.release_diff.outcome == 'success' && steps.release_diff.outputs.pull-request-count > 0 && inputs.slack-webhook-url != ''
+      continue-on-error: true
+      shell: bash
+      env:
+        JSON_FILE: ${{ steps.release_diff.outputs.json-file }}
+        JIRA_BASE_URL: ${{ inputs.jira-base-url }}
+        TO_REF: ${{ inputs.to-ref }}
+        TO_LABEL_INPUT: ${{ inputs.to-label }}
+        RELEASE_BY: ${{ inputs.release-by || github.triggering_actor }}
+      run: |
+        : > pr_lines.txt
+
+        # Build each PR's line. Where the title follows the
+        # 'type(DSTEW-1234): ...' / '[DSTEW-1234] - ...' convention, the
+        # ticket ID *within* the title itself becomes the Jira link (rather
+        # than a separate link tagged on the end). Reuses the
+        # extract_ticket_id script directly (rather than duplicating its
+        # regex logic here) by pointing GITHUB_OUTPUT at a scratch file per
+        # call.
+        while IFS= read -r pr; do
+          number=$(jq -r '.number' <<< "$pr")
+          title=$(jq -r '.title' <<< "$pr")
+          url=$(jq -r '.url' <<< "$pr")
+
+          TICKET_OUT=$(mktemp)
+          TITLE="$title" GITHUB_OUTPUT="$TICKET_OUT" JIRA_BASE_URL="$JIRA_BASE_URL" \
+            .github/actions/extract_ticket_id/extract-ticket-id.sh > /dev/null
+          ticket_id=$(grep '^ticket-id=' "$TICKET_OUT" | cut -d= -f2-)
+          ticket_url=$(grep '^ticket-url=' "$TICKET_OUT" | cut -d= -f2-)
+          rm -f "$TICKET_OUT"
+
+          # Escape Slack mrkdwn special characters in the raw title first...
+          safe_title=$(printf '%s' "$title" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
+
+          # ...then turn the ticket ID substring within it into the Jira link,
+          # e.g. "chore(DSTEW-2407): message" becomes
+          # "chore(<jira-url|DSTEW-2407>): message".
+          if [ -n "$ticket_id" ]; then
+            safe_title=$(printf '%s' "$safe_title" | sed "s#${ticket_id}#<${ticket_url}|${ticket_id}>#")
+          fi
+
+          echo "- <${url}|PR #${number}> ${safe_title}" >> pr_lines.txt
+        done < <(jq -c '.pull_requests[]' "$JSON_FILE")
+
+        if [ -n "$TO_LABEL_INPUT" ]; then
+          TO_LABEL="$TO_LABEL_INPUT"
+        elif [[ "$TO_REF" =~ ^[0-9a-f]{40}$ ]]; then
+          TO_LABEL="${TO_REF:0:7}"
+        else
+          TO_LABEL="$TO_REF"
+        fi
+
+        {
+          echo "to-label=$TO_LABEL"
+          echo "release-by=$RELEASE_BY"
+          echo 'lines<<PR_LINES_EOF'
+          cat pr_lines.txt
+          echo 'PR_LINES_EOF'
+        } >> "$GITHUB_OUTPUT"
+
+    - name: Send Slack notification
+      if: steps.release_diff.outcome == 'success' && steps.release_diff.outputs.pull-request-count > 0 && inputs.slack-webhook-url != ''
+      continue-on-error: true
+      uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
+      with:
+        webhook: ${{ inputs.slack-webhook-url }}
+        webhook-type: incoming-webhook
+        payload: |
+          {
+            "text": "Updating ${{ inputs.environment-name }} from ${{ inputs.from-ref }} → ${{ steps.build_list.outputs.to-label }}\nRelease by ${{ steps.build_list.outputs.release-by }}",
+            "attachments": [
+              {
+                "color": "#2eb67d",
+                "text": "*Changes:*\n${{ steps.build_list.outputs.lines }}"
+              }
+            ]
+          }
+
