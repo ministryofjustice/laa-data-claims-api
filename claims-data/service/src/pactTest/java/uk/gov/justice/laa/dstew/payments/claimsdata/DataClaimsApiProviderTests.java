@@ -505,6 +505,19 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     when(assessmentRepository.save(any())).thenReturn(savedAssessment);
   }
 
+  @State("a claim that is already void exists")
+  public void aClaimThatIsAlreadyVoidExists() {
+    log.info("Setting up state: a claim that is already void exists");
+    Claim claim = getClaim();
+    claim.setStatus(ClaimStatus.VOID);
+    claim.setVersion(0L);
+    when(claimRepository.findById(any())).thenReturn(Optional.of(claim));
+    when(claimSummaryFeeRepository.existsById(any())).thenReturn(true);
+    when(claimSummaryFeeRepository.getReferenceById(any())).thenReturn(getClaimSummaryFee());
+    when(claimSummaryFeeRepository.findByClaimId(any()))
+        .thenReturn(Optional.of(getClaimSummaryFee()));
+  }
+
   @SneakyThrows
   @State("no data exists for the export")
   public void noDataExistsForTheExport() {
