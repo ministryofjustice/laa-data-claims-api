@@ -8,6 +8,7 @@ sql: |
        client.unique_client_number                                        as clientUcn,
        concat_ws(' ', client.client_2_forename, client.client_2_surname)  as client2Name,
        client.client_2_ucn                                                as client2Ucn,
+       c.case_reference_number                                           as caseReferenceNumber,
        c.fee_code                                                         as feeCode,
        c.matter_type_code                                                 as matterType,
        c.case_start_date                                                  as caseStartDate,
@@ -112,6 +113,8 @@ columns:
     header: Client 2 name
   - key: client2Ucn
     header: Client 2 unique client number (UCN)
+  - key: caseReferenceNumber
+    header: Case Reference Number
   - key: feeCode
     header: Fee code
   - key: matterType

@@ -114,6 +114,7 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
         List.of(
             text("Client name", "Jane Doe"),
             text("Unique file number (UFN)", "011025/001"),
+            text("Case Reference Number", "CRN0001"),
             text("Fee code", "IMMA"),
             text("Matter type 1", "IMMA"),
             text("Matter type 2", "IASY"),
@@ -498,6 +499,7 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
             text("Client 1 unique client number (UCN)", "03031992/C/DEFG"),
             text("Client 2 name", "Noah Green"),
             text("Client 2 unique client number (UCN)", "04041993/D/EFGH"),
+            text("Case Reference Number", "CRN0002"),
             text("Fee code", "MDAS2B"),
             text("Matter type codes", "FAMA:FAMY"),
             text("Case start date", "2025-09-01"),
@@ -679,6 +681,7 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
             claim
                 .status(status)
                 .uniqueFileNumber("011025/001")
+                .caseReferenceNumber("CRN0001")
                 .feeCode("IMMA")
                 .matterTypeCode("IMMA:IASY")
                 .caseStartDate(LocalDate.of(2025, Month.SEPTEMBER, 1))
@@ -742,6 +745,7 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
         claim ->
             claim
                 .status(status)
+                .caseReferenceNumber("CRN0002")
                 .feeCode("MDAS2B")
                 .matterTypeCode("FAMA:FAMY")
                 .caseStartDate(LocalDate.of(2025, Month.SEPTEMBER, 1))

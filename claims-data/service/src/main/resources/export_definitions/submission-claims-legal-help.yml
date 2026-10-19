@@ -6,6 +6,7 @@ sql: |
        -- Claim identifiers
        concat_ws(' ', client.client_forename, client.client_surname) as clientName,
        c.unique_file_number                                          as ufn,
+       c.case_reference_number                                       as caseReferenceNumber,
        c.fee_code                                                    as feeCode,
        split_part(c.matter_type_code, ':', 1)                        as matterType1,
        split_part(c.matter_type_code, ':', 2)                        as matterType2,
@@ -213,6 +214,8 @@ columns:
     header: Client name
   - key: ufn
     header: Unique file number (UFN)
+  - key: caseReferenceNumber
+    header: Case Reference Number
   - key: feeCode
     header: Fee code
   - key: matterType1
