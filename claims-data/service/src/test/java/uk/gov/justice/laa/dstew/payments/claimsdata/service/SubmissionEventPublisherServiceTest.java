@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentCaptor.forClass;
 import static org.mockito.Mockito.*;
@@ -135,6 +136,16 @@ class SubmissionEventPublisherServiceTest {
                 .build());
 
     verifyNoMoreInteractions(snsClient);
+  }
+
+  @Test
+  @DisplayName("publishSubmissionApprovalEvent rejects a null submission id without publishing")
+  void publish_ApproveSubmissionEvent_rejectsNullSubmissionId() {
+    assertThatThrownBy(() -> submissionEventPublisherService.publishSubmissionApprovalEvent(null))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Submission id must be provided");
+
+    verifyNoInteractions(snsClient);
   }
 
   @Test

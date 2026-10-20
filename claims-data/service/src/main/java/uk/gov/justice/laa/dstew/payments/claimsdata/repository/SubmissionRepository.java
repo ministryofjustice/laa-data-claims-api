@@ -51,7 +51,7 @@ public interface SubmissionRepository
    */
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("SELECT s FROM Submission s WHERE s.id = :submissionId")
-  Optional<Submission> findByIdForUpdate(@Param("submissionId") UUID submissionId);
+  Optional<Submission> findByIdAndLockForUpdate(@Param("submissionId") UUID submissionId);
 
   /**
    * Projection for Calculated total amounts grouped by submission.

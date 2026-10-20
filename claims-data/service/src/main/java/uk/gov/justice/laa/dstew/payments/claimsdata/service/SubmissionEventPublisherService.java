@@ -78,8 +78,13 @@ public class SubmissionEventPublisherService {
    * Publishes a request to run final validation for a submission awaiting provider approval.
    *
    * @param submissionId the unique identifier for the submission
+   * @throws IllegalArgumentException when {@code submissionId} is null
    */
   public void publishSubmissionApprovalEvent(UUID submissionId) {
+    if (submissionId == null) {
+      throw new IllegalArgumentException("Submission id must be provided");
+    }
+
     SubmissionValidationMessage submissionValidationMessage =
         new SubmissionValidationMessage(submissionId);
 

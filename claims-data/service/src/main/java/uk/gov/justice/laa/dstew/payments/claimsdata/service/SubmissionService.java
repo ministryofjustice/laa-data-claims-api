@@ -207,7 +207,7 @@ public class SubmissionService
         .previousSubmissionId(submission.getPreviousSubmissionId())
         .isNilSubmission(submission.getIsNilSubmission())
         .numberOfClaims(submission.getNumberOfClaims())
-        .submitted(OffsetDateTime.ofInstant(submission.getCreatedOn(), ZoneId.systemDefault()))
+        .submitted(toOffsetDateTime(submission.getCreatedOn()))
         .approvedOn(toOffsetDateTime(submission.getApprovedOn()))
         .approvedByUserId(submission.getApprovedByUserId())
         .claims(claims)
@@ -296,7 +296,7 @@ public class SubmissionService
 
     Submission submission =
         submissionRepository
-            .findByIdForUpdate(id)
+            .findByIdAndLockForUpdate(id)
             .orElseThrow(() -> entityNotFoundSupplier("No entity found with id: " + id).get());
 
     requireMatchingOffice(submissionPatch, submission);

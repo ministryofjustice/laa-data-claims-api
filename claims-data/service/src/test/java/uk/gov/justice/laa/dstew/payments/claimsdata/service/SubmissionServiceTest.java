@@ -527,7 +527,7 @@ class SubmissionServiceTest {
             .officeAccountNumber(APPROVING_OFFICE)
             .status(SubmissionStatus.VALIDATED_PENDING_APPROVAL)
             .build();
-    when(submissionRepository.findByIdForUpdate(id)).thenReturn(Optional.of(entity));
+    when(submissionRepository.findByIdAndLockForUpdate(id)).thenReturn(Optional.of(entity));
     SubmissionPatch patch = finalValidationPatch(APPROVING_OFFICE);
 
     submissionService.updateSubmission(id, patch);
@@ -554,7 +554,7 @@ class SubmissionServiceTest {
             .numberOfClaims(3)
             .providerUserId("original-provider")
             .build();
-    when(submissionRepository.findByIdForUpdate(id)).thenReturn(Optional.of(entity));
+    when(submissionRepository.findByIdAndLockForUpdate(id)).thenReturn(Optional.of(entity));
     SubmissionPatch patch =
         finalValidationPatch(APPROVING_OFFICE)
             .isNilSubmission(true)
@@ -581,7 +581,7 @@ class SubmissionServiceTest {
             .officeAccountNumber(APPROVING_OFFICE)
             .status(SubmissionStatus.VALIDATED_PENDING_APPROVAL)
             .build();
-    when(submissionRepository.findByIdForUpdate(id)).thenReturn(Optional.of(entity));
+    when(submissionRepository.findByIdAndLockForUpdate(id)).thenReturn(Optional.of(entity));
     SubmissionPatch patch = finalValidationPatch(APPROVING_OFFICE, approvingUserId);
 
     assertThrows(
@@ -606,7 +606,7 @@ class SubmissionServiceTest {
             .approvedOn(originalApproval)
             .approvedByUserId(APPROVING_USER)
             .build();
-    when(submissionRepository.findByIdForUpdate(id)).thenReturn(Optional.of(entity));
+    when(submissionRepository.findByIdAndLockForUpdate(id)).thenReturn(Optional.of(entity));
     SubmissionPatch patch = finalValidationPatch(APPROVING_OFFICE);
 
     submissionService.updateSubmission(id, patch);
@@ -637,7 +637,7 @@ class SubmissionServiceTest {
             .officeAccountNumber(APPROVING_OFFICE)
             .status(SubmissionStatus.valueOf(status))
             .build();
-    when(submissionRepository.findByIdForUpdate(id)).thenReturn(Optional.of(entity));
+    when(submissionRepository.findByIdAndLockForUpdate(id)).thenReturn(Optional.of(entity));
     SubmissionPatch patch = finalValidationPatch(APPROVING_OFFICE);
 
     assertThrows(
@@ -657,7 +657,7 @@ class SubmissionServiceTest {
             .officeAccountNumber(APPROVING_OFFICE)
             .status(SubmissionStatus.VALIDATED_PENDING_APPROVAL)
             .build();
-    when(submissionRepository.findByIdForUpdate(id)).thenReturn(Optional.of(entity));
+    when(submissionRepository.findByIdAndLockForUpdate(id)).thenReturn(Optional.of(entity));
     SubmissionPatch patch = finalValidationPatch("ANOTHER-OFFICE");
 
     SubmissionOfficeAuthorisationException exception =
@@ -682,7 +682,7 @@ class SubmissionServiceTest {
             .officeAccountNumber(APPROVING_OFFICE)
             .status(SubmissionStatus.READY_FOR_FINAL_VALIDATION)
             .build();
-    when(submissionRepository.findByIdForUpdate(id)).thenReturn(Optional.of(entity));
+    when(submissionRepository.findByIdAndLockForUpdate(id)).thenReturn(Optional.of(entity));
     SubmissionPatch patch = finalValidationPatch("ANOTHER-OFFICE");
 
     assertThrows(
@@ -705,7 +705,7 @@ class SubmissionServiceTest {
             .officeAccountNumber(APPROVING_OFFICE)
             .status(SubmissionStatus.VALIDATED_PENDING_APPROVAL)
             .build();
-    when(submissionRepository.findByIdForUpdate(id)).thenReturn(Optional.of(entity));
+    when(submissionRepository.findByIdAndLockForUpdate(id)).thenReturn(Optional.of(entity));
     SubmissionPatch patch = finalValidationPatch(officeAccountNumber);
 
     assertThrows(
@@ -727,7 +727,7 @@ class SubmissionServiceTest {
     assertThrows(
         SubmissionBadRequestException.class, () -> submissionService.updateSubmission(id, patch));
 
-    verify(submissionRepository, never()).findByIdForUpdate(any());
+    verify(submissionRepository, never()).findByIdAndLockForUpdate(any());
     verifyNoInteractions(submissionEventPublisherService, submissionMapper);
     verify(submissionRepository, never()).save(any());
   }
@@ -781,7 +781,7 @@ class SubmissionServiceTest {
   @DisplayName("Should throw when starting final validation for a non-existent submission")
   void shouldThrowWhenStartingFinalValidationForNonExistentSubmission() {
     UUID id = Uuid7.timeBasedUuid();
-    when(submissionRepository.findByIdForUpdate(id)).thenReturn(Optional.empty());
+    when(submissionRepository.findByIdAndLockForUpdate(id)).thenReturn(Optional.empty());
     SubmissionPatch patch = finalValidationPatch(APPROVING_OFFICE);
 
     assertThrows(
