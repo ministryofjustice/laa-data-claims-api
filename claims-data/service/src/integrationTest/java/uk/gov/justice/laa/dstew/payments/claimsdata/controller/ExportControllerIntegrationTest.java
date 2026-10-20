@@ -114,6 +114,7 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
         List.of(
             text("Client name", "Jane Doe"),
             text("Unique file number (UFN)", "011025/001"),
+            text("Case reference number", "CASE-LH-001"),
             text("Fee code", "IMMA"),
             text("Matter type 1", "IMMA"),
             text("Matter type 2", "IASY"),
@@ -214,6 +215,7 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
         List.of(
             text("Client name", "John Smith"),
             text("Unique file number (UFN)", "011025/002"),
+            text("Case reference number", "CASE-CL-002"),
             text("Fee code", "INVC"),
             text("Matter type", "01"),
             text("Representation order date", "2025-09-05"),
@@ -498,6 +500,7 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
             text("Client 1 unique client number (UCN)", "03031992/C/DEFG"),
             text("Client 2 name", "Noah Green"),
             text("Client 2 unique client number (UCN)", "04041993/D/EFGH"),
+            text("Case reference number", "CASE-MED-003"),
             text("Fee code", "MDAS2B"),
             text("Matter type codes", "FAMA:FAMY"),
             text("Case start date", "2025-09-01"),
@@ -679,6 +682,7 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
             claim
                 .status(status)
                 .uniqueFileNumber("011025/001")
+                .caseReferenceNumber("CASE-LH-001")
                 .feeCode("IMMA")
                 .matterTypeCode("IMMA:IASY")
                 .caseStartDate(LocalDate.of(2025, Month.SEPTEMBER, 1))
@@ -711,6 +715,7 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
             claim
                 .status(status)
                 .uniqueFileNumber("011025/002")
+                .caseReferenceNumber("CASE-CL-002")
                 .feeCode("INVC")
                 .matterTypeCode("CMAT")
                 .crimeMatterTypeCode("01")
@@ -742,6 +747,7 @@ class ExportControllerIntegrationTest extends AbstractIntegrationTest {
         claim ->
             claim
                 .status(status)
+                .caseReferenceNumber("CASE-MED-003")
                 .feeCode("MDAS2B")
                 .matterTypeCode("FAMA:FAMY")
                 .caseStartDate(LocalDate.of(2025, Month.SEPTEMBER, 1))
