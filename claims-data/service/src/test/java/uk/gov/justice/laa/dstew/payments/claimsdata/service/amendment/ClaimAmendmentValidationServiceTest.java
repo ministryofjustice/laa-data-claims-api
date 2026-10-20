@@ -19,7 +19,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.service.ValidationService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.client.FeeSchemePlatformRestClient;
-import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
@@ -34,7 +33,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.fee.FeeSch
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.AmendmentChangeDetector;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistence.AmendmentDiffAssembler;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentExternalValidationStep;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFeatureFlagValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFspValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentNoChangeValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentReferenceValidationStep;
@@ -126,11 +124,6 @@ class ClaimAmendmentValidationServiceTest {
   void sortsDiscoveredStepsIntoDeclaredOrder() {
     ClaimAmendmentValidationStep extraStep = state -> List.of();
 
-    // Enable the amendments feature so the feature-flag step (first in STEP_ORDER) passes rather
-    // than short-circuiting at step one.
-    ClaimsApiProperties claimsApiProperties = new ClaimsApiProperties();
-    claimsApiProperties.getAmendments().setEnabled("true");
-
     // Provide a bean for every declared step so ordered() can resolve STEP_ORDER. The empty state
     // below carries no request payload, so the claim-version step (early in STEP_ORDER) returns a
     // fatal null-version error and the orchestrator short-circuits before the later steps run.
@@ -138,7 +131,6 @@ class ClaimAmendmentValidationServiceTest {
         new ClaimAmendmentValidationService(
             List.of(
                 extraStep,
-                new AmendmentFeatureFlagValidationStep(claimsApiProperties),
                 new BeforeStatePresenceValidationStep(),
                 new ClaimVersionValidationStep(),
                 new AmendmentNoChangeValidationStep(new AmendmentChangeDetector()),
@@ -184,19 +176,14 @@ class ClaimAmendmentValidationServiceTest {
 
     var state = ClaimAmendmentState.builder().beforeState(before).postAmendmentState(after).build();
 
-    // Arrange ordered steps: feature-flag (enabled), status, assessed-pricing (real), then a mocked
-    // FSP.
-    ClaimsApiProperties props = new ClaimsApiProperties();
-    props.getAmendments().setEnabled("true");
-
-    ClaimAmendmentValidationStep feature = new AmendmentFeatureFlagValidationStep(props);
+    // Arrange ordered steps: status, assessed-pricing (real), then a mocked FSP.
     ClaimAmendmentValidationStep status = new ClaimStatusValidationStep();
     ClaimAmendmentValidationStep assessedPricing =
         new AssessedClaimPricingValidationStep(new AmendmentChangeDetector());
     ClaimAmendmentValidationStep fspMock = mock(ClaimAmendmentValidationStep.class);
 
     ClaimAmendmentValidationService service =
-        new ClaimAmendmentValidationService(feature, status, assessedPricing, fspMock);
+        new ClaimAmendmentValidationService(status, assessedPricing, fspMock);
 
     var errors = service.validateAmendmentRequest(state);
 
