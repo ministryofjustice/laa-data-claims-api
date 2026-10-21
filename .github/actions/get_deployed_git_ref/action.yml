@@ -1,4 +1,3 @@
-
 name: Get deployed git ref
 description: >
   Reads the currently deployed image from a Kubernetes deployment and
