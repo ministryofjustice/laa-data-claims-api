@@ -23,7 +23,7 @@ jobs:
       jar_subproject: 'claims-data:service'
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
-      gh_packages_token: ${{ secrets.PHILS_PAT_TOKEN }}
+      gh_packages_token: ${{ secrets.GH_PACKAGES_TOKEN }}
       ecr_repository: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REPOSITORY }}
       ecr_region: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REGION }}
       ecr_role_to_assume: ${{ secrets.LAA_DATA_CLAIMS_API_ECR_ROLE_TO_ASSUME }}

@@ -21,7 +21,7 @@ jobs:
       java_version: 25
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
-      gh_packages_token: ${{ secrets.PHILS_PAT_TOKEN }}
+      gh_packages_token: ${{ secrets.GH_PACKAGES_TOKEN }}
       pact_broker_url: ${{ secrets.PACT_BROKER_URL }}
       pact_broker_username: ${{ secrets.PACT_BROKER_USERNAME }}
       pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}

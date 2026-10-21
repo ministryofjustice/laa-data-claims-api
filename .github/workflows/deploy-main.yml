@@ -33,7 +33,7 @@ jobs:
       release_type: ${{ inputs.release_type != 'auto' && inputs.release_type || '' }}
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
-      gh_packages_token: ${{ secrets.PHILS_PAT_TOKEN }}
+      gh_packages_token: ${{ secrets.GH_PACKAGES_TOKEN }}
       aws_region: ${{ vars.AWS_REGION }}
 
   pact-test:
@@ -48,7 +48,7 @@ jobs:
       is_provider: true
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
-      gh_packages_token: ${{ secrets.PHILS_PAT_TOKEN }}
+      gh_packages_token: ${{ secrets.GH_PACKAGES_TOKEN }}
       pact_broker_url: ${{ secrets.PACT_BROKER_URL }}
       pact_broker_username: ${{ secrets.PACT_BROKER_USERNAME }}
       pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
@@ -85,7 +85,7 @@ jobs:
       image_scan: 'true'
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
-      gh_packages_token: ${{ secrets.PHILS_PAT_TOKEN }}
+      gh_packages_token: ${{ secrets.GH_PACKAGES_TOKEN }}
       ecr_repository: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REPOSITORY }}
       ecr_region: ${{ vars.LAA_DATA_CLAIMS_API_ECR_REGION }}
       ecr_role_to_assume: ${{ secrets.LAA_DATA_CLAIMS_API_ECR_ROLE_TO_ASSUME }}
