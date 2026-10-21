@@ -15,7 +15,7 @@ jobs:
   # 'false' so the image is built and scanned but never pushed to ECR.
   image-scan:
     name: Container image Snyk scan
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@01e4abe0075a71c655247f7ae7552fd724a9f36b # v2.5.0
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@57f8d08c0cf807ea64fc121500669c4d3dada733 # v2.5.1
     permissions:
       contents: read
       id-token: write

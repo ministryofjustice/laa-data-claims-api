@@ -18,7 +18,7 @@ env:
 
 jobs:
   release:
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/gradle-build-and-publish.yml@01e4abe0075a71c655247f7ae7552fd724a9f36b # v2.5.0
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/gradle-build-and-publish.yml@57f8d08c0cf807ea64fc121500669c4d3dada733 # v2.5.1
     permissions:
       contents: write
       packages: write
@@ -38,7 +38,7 @@ jobs:
 
   pact-test:
     needs: [ release ]
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-and-publish.yml@01e4abe0075a71c655247f7ae7552fd724a9f36b # v2.5.0
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/pact-and-publish.yml@57f8d08c0cf807ea64fc121500669c4d3dada733 # v2.5.1
     permissions:
       contents: write
       packages: write
@@ -72,7 +72,7 @@ jobs:
 
   ecr-publish-image:
     needs: [ release, bdd-test ]
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@01e4abe0075a71c655247f7ae7552fd724a9f36b # v2.5.0
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@57f8d08c0cf807ea64fc121500669c4d3dada733 # v2.5.1
     permissions:
       contents: read
       id-token: write
