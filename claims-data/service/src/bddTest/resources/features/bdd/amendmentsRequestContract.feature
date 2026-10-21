@@ -16,7 +16,6 @@ Feature: Amendment request contract — claim_version JSON integer validation
   #               Envelope shape (DSTEW-1754).
 
   Background:
-    Given the amendments feature flag is enabled
 
   @DS1751_1
   Scenario Outline: Boundary — integer claim_version <case> is accepted at the contract layer

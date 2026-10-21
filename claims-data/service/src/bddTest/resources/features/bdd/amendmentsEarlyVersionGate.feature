@@ -36,7 +36,6 @@ Feature: Amendment early version gate — pre-processing optimistic-concurrency 
   # amendment event could have been emitted either.
 
   Background:
-    Given the amendments feature flag is enabled
 
   # AC1 — submitted version matches current claim.version → processing continues.
   @DS1752_1

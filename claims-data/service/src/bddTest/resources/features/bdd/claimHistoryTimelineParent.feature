@@ -41,7 +41,6 @@ Feature: Claim history timeline — parent-level cross-cutting guarantees
   #   * Display names / label lookups         → AaBC UI concern, out of Claims API
 
   Background:
-    Given the amendments feature flag is enabled
 
   @smoke @DS1645_1
   Scenario: Mixed timeline — submission, amendments, assessment and void appear in the agreed order

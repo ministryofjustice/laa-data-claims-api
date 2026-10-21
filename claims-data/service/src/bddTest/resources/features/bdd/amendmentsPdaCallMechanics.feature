@@ -24,7 +24,6 @@ Feature: PDA re-validation — call mechanics (cache, single-attempt timeout, de
   #               Parent-flow integration → amendmentsPdaParentIntegration.feature.
 
   Background:
-    Given the amendments feature flag is enabled
     And the amendment PDA trigger will report "pda_relevant" as "true"
 
   @PDA_4

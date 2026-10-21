@@ -22,12 +22,10 @@ Feature: Amendment metadata — submit-time validation (Requested By / Amendment
   #                     AR_CATEGORY_FIX (active, valid for RB_CASEWORKER),
   #                     AR_RETIRED (inactive, was valid for RB_PROVIDER)
   #
-  # OUT OF SCOPE: Feature flag → amendmentsFeatureFlag.feature;
   #               Reference-data lookup contract → amendmentsMetadataReferenceLookup.feature.
 
   @smoke @DS1765_1
   Scenario: Valid metadata does not raise any metadata validation error
-    Given the amendments feature flag is enabled
     And the amendment metadata reference-data source is available
     And an amendment with metadata
       | requestedByCode | amendmentReasonCode | submittingUserId                     |
@@ -38,7 +36,6 @@ Feature: Amendment metadata — submit-time validation (Requested By / Amendment
 
   @DS1765_2
   Scenario Outline: Requested By <case> is rejected with <expectedCode>
-    Given the amendments feature flag is enabled
     And the amendment metadata reference-data source is available
     And an amendment with metadata
       | requestedByCode   | amendmentReasonCode | submittingUserId                     |
@@ -58,7 +55,6 @@ Feature: Amendment metadata — submit-time validation (Requested By / Amendment
 
   @DS1765_3
   Scenario Outline: Amendment Reason <case> is rejected with <expectedCode>
-    Given the amendments feature flag is enabled
     And the amendment metadata reference-data source is available
     And an amendment with metadata
       | requestedByCode | amendmentReasonCode   | submittingUserId                     |
@@ -78,7 +74,6 @@ Feature: Amendment metadata — submit-time validation (Requested By / Amendment
 
   @DS1765_4
   Scenario: Amendment Reason valid for one Requested By is rejected when paired with another Requested By
-    Given the amendments feature flag is enabled
     And the amendment metadata reference-data source is available
     And an amendment with metadata
       | requestedByCode | amendmentReasonCode | submittingUserId                     |
@@ -91,7 +86,6 @@ Feature: Amendment metadata — submit-time validation (Requested By / Amendment
 
   @DS1765_5
   Scenario: Amendment Reason is accepted when paired with its valid Requested By
-    Given the amendments feature flag is enabled
     And the amendment metadata reference-data source is available
     And an amendment with metadata
       | requestedByCode | amendmentReasonCode | submittingUserId                     |
@@ -101,7 +95,6 @@ Feature: Amendment metadata — submit-time validation (Requested By / Amendment
 
   @DS1765_6
   Scenario Outline: Submitting user id "<userId>" is <result>
-    Given the amendments feature flag is enabled
     And the amendment metadata reference-data source is available
     And an amendment with metadata
       | requestedByCode | amendmentReasonCode | submittingUserId |
@@ -119,7 +112,6 @@ Feature: Amendment metadata — submit-time validation (Requested By / Amendment
 
   @DS1765_7
   Scenario: Multiple metadata errors are surfaced together in one Step 12 response
-    Given the amendments feature flag is enabled
     And the amendment metadata reference-data source is available
     And an amendment with metadata
       | requestedByCode | amendmentReasonCode | submittingUserId |
@@ -135,7 +127,6 @@ Feature: Amendment metadata — submit-time validation (Requested By / Amendment
 
   @DS1765_8
   Scenario: Metadata validation does not perform display-name or current-user lookups
-    Given the amendments feature flag is enabled
     And the amendment metadata reference-data source is available
     And an amendment with metadata
       | requestedByCode | amendmentReasonCode | submittingUserId                     |
@@ -146,7 +137,6 @@ Feature: Amendment metadata — submit-time validation (Requested By / Amendment
 
   @DS1765_9
   Scenario: Reference data unavailable returns a controlled technical failure and no amendment is saved
-    Given the amendments feature flag is enabled
     And an amendment with metadata
       | requestedByCode | amendmentReasonCode | submittingUserId                     |
       | RB_PROVIDER     | AR_FEE_CORR         | 8f14e45f-ceea-467a-b3c0-38f89b0e07a1 |

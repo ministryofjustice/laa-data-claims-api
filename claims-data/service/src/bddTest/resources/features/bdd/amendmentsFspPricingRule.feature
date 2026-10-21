@@ -19,7 +19,6 @@ Feature: Amendment changed-field classifier — FSP pricing rule (impacts_pricin
   #               Assessed-claim pricing rejection → DSTEW-1767.
 
   Background:
-    Given the amendments feature flag is enabled
     And the FSP fee-calculation request-body field map is the authoritative pricing rule source
 
   @smoke @DS1757_1

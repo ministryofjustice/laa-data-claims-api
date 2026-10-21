@@ -30,7 +30,6 @@ Feature: Amendment FSP calculated-fee persistence handoff
   # end-to-end contract.
 
   Background:
-    Given the amendments feature flag is enabled
 
   Scenario: Monetary change — prepared row is linked, is_price_changed true, FSP diff entry present, previous row retained
     Given a fresh amendable claim on a legal-help submission at version 0

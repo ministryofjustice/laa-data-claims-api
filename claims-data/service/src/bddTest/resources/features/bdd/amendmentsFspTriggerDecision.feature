@@ -49,7 +49,6 @@ Feature: Amendment Step 13 — FSP skip/continue decision from pricing classific
   #               non-functional requirements.
 
   Background:
-    Given the amendments feature flag is enabled
 
   # AC1 — no changed field is pricing-impacting → Step 13 skips FSP. FSP is armed
   # and available, so "no call" proves the decision to skip, not an unavailable

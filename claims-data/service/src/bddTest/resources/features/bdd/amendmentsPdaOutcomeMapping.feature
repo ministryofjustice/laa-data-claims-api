@@ -26,7 +26,6 @@ Feature: PDA re-validation — outcome mapping (validation messages & terminal t
   #               Parent-flow integration → amendmentsPdaParentIntegration.feature.
 
   Background:
-    Given the amendments feature flag is enabled
     And the amendment PDA trigger will report "pda_relevant" as "true"
 
   @DS1774_1

@@ -13,7 +13,6 @@ Feature: Amendment FSP repricing over real HTTP (MockServer)
   # scenario, the migrated client was never exercised over HTTP.
 
   Background:
-    Given the amendments feature flag is enabled
 
   Scenario: Pricing amendment triggers a real FSP fee-calculation call and is accepted
     Given a fresh amendable claim on a legal-help submission at version 0

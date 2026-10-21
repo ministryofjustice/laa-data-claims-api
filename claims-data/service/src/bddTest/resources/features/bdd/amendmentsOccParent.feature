@@ -56,7 +56,6 @@ Feature: Amendment OCC — parent-level end-to-end contract sweep
   #   * CLAIM_VERSION_CONFLICT envelope shape + structured logger  → DSTEW-1754
 
   Background:
-    Given the amendments feature flag is enabled
     And the amendment PDA trigger will report "pda_relevant" as "true"
     And the PDA service will respond "authorised" within the amendment-path timeout
     And the FSP service will return a valid fee calculation for the amendment

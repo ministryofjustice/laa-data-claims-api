@@ -32,7 +32,6 @@ Feature: Amendment final-save guard — commit-time OCC (@Version) protection
   #               Request-body shape — DSTEW-1754.
 
   Background:
-    Given the amendments feature flag is enabled
 
   @smoke @DS1753_1
   Scenario: Happy path — no concurrent writer, commit succeeds and bumps @Version

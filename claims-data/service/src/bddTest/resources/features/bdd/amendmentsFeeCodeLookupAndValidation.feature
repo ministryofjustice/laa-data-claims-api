@@ -46,7 +46,6 @@ Feature: Amendment fee-code lookup & fee-code Area-of-Law gate
   #               Fee Code Details per-fee-code field rules -> LFSP-418.
 
   Background:
-    Given the amendments feature flag is enabled
     And the Fee Code Details lookup is available
 
   # ============================================================================

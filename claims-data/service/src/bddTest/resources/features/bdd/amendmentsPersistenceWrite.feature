@@ -86,7 +86,6 @@ Feature: Amendment persistence — assemble & write the durable business record
   #     sparse-payload preservation, FK integrity) → @DataJpaTest layer
 
   Background:
-    Given the amendments feature flag is enabled
 
   @DS1907_1
   Scenario: Multi-amendment accumulation — each successful pricing amendment adds one attributed calc-fee row; non-pricing adds none

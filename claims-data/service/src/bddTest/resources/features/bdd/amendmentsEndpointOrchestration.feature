@@ -27,7 +27,6 @@ Feature: Amendment endpoint — end-to-end orchestration (DSTEW-1593 wiring)
   #   * PDA / FSP call mechanics    → their own child files
 
   Background:
-    Given the amendments feature flag is enabled
 
   # ============================================================================
   # Happy paths — end-to-end atomic save

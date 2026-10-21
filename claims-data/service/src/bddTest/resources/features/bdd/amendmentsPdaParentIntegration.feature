@@ -20,7 +20,6 @@ Feature: PDA re-validation — parent-level integration (ordering & atomicity)
   #               PDA outcome mapping → amendmentsPdaOutcomeMapping.feature.
 
   Background:
-    Given the amendments feature flag is enabled
     And the amendment PDA trigger will report "pda_relevant" as "true"
 
   @DS1646_1

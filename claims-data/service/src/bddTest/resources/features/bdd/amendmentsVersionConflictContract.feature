@@ -55,7 +55,6 @@ Feature: Amendment stale-version conflict — shared CLAIM_VERSION_CONFLICT enve
   #   * Non-functional requirements (latency / external-call budget sizing).
 
   Background:
-    Given the amendments feature flag is enabled
 
   # AC1 — an early (initial_check) stale conflict returns the shared envelope with
   # the stable code and the exact user-safe message.

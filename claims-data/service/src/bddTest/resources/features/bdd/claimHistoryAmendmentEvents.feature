@@ -33,7 +33,6 @@ Feature: Claim history timeline — AMENDMENT event FSP repricing & escape-case 
   # escape-case business rules.
 
   Background:
-    Given the amendments feature flag is enabled
 
   # ============================================================================
   # AC1 / AC2 — Pricing amendment with FSP-linked calc-fee row

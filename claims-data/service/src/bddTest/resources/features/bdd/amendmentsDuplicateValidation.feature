@@ -61,7 +61,6 @@ Feature: Amendment duplicate validation - reuse existing rules against post-amen
   #   proves the exemption by the successful commit.
 
   Background:
-    Given the amendments feature flag is enabled
     And the amendment PDA trigger will report "pda_relevant" as "true"
     And the PDA service will respond "authorised" within the amendment-path timeout
 

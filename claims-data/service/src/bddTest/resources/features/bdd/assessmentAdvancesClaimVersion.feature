@@ -44,7 +44,6 @@ Feature: Assessment must advance claim.version so in-flight amendments are inval
   Background:
     Given the assessment endpoint is available
     And the amendment endpoint is available
-    And the amendments feature flag is enabled
     And claim "C" exists in status "VALID" and is amendable
 
   @smoke @DS2051_1

@@ -27,7 +27,6 @@ Feature: Amendment gates — field amendability & assessed-claim pricing restric
   # classifier internals → DSTEW-1766.
 
   Background:
-    Given the amendments feature flag is enabled
     And the amendment PDA trigger will report "pda_relevant" as "true"
     And the PDA service will respond "authorised" within the amendment-path timeout
 

@@ -22,7 +22,6 @@ Feature: Amendment changed-field classifier — PDA trigger (pda_relevant)
   #               amendmentsPdaOutcomeMapping.feature.
 
   Background:
-    Given the amendments feature flag is enabled
     And a positive PDA cache entry exists for the pre-amendment officeCode and resolved effectiveDate
 
   # ============================================================================

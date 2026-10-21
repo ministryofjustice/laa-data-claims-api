@@ -46,7 +46,6 @@ Feature: Amendment Step 12 — validation-message aggregation & outcome check
   #               terminal technical response shape → owning integration tickets.
 
   Background:
-    Given the amendments feature flag is enabled
 
   # ============================================================================
   # Cross-source aggregation (parent-level guarantee)

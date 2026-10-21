@@ -49,7 +49,6 @@ Feature: Amendment FSP request builder — built from post-amendment claim state
   #               calc-fee row → DSTEW-1762/1907; non-functional requirements.
 
   Background:
-    Given the amendments feature flag is enabled
 
   # AC1 + AC2 — the worked example: a changed FSP-input field (case_start_date)
   # carries the post-amendment value; an omitted FSP-input field (fee_code) carries

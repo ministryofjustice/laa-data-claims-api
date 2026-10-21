@@ -35,7 +35,6 @@ Feature: Amendment FSP outcome mapping
   #     the user-safe-message-without-payload-leak half of that AC IS asserted (no-payload-leak below).
 
   Background:
-    Given the amendments feature flag is enabled
 
   Scenario: FSP business validation failure rejects the amendment and surfaces the FSP message
     Given a fresh amendable claim on a legal-help submission at version 0
