@@ -153,7 +153,7 @@ runs:
             "attachments": [
               {
                 "color": "#2eb67d",
-                "text": "*Changes:*\n${{ steps.build_list.outputs.lines }}"
+                "text": ${{ toJSON(format('*Changes:* {0}', steps.build_list.outputs.lines)) }}
               }
             ]
           }
