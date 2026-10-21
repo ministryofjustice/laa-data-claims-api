@@ -27,7 +27,8 @@ def versions = [
         // (below) in addition to importing the jackson-bom platform, to guarantee they win
         // over the lower version recommended by Spring Boot's own BOM (spring-boot-dependencies).
         jacksonBom      : '2.21.7',
-        jacksonToolsBom : '3.1.7'
+        jacksonToolsBom : '3.1.7',
+        claimvalidator  : '1.5.10'
 ]
 
 // Spring Boot 4.1.1 pins tomcat.version to 11.0.24, which is below the fix for the critical Snyk
@@ -104,8 +105,8 @@ dependencies {
     implementation 'io.netty:netty-codec-classes-quic:4.2.18.Final'
     implementation 'io.netty:netty-codec-native-quic:4.2.18.Final'
 
-    implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:claims-validation-core:1.5.6'
-    implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:reference-fee-scheme-platform-api:1.5.6'
+    implementation "uk.gov.justice.laa.dstew.payments.claims.validation:claims-validation-core:$versions.claimvalidator"
+    implementation "uk.gov.justice.laa.dstew.payments.claims.validation:reference-fee-scheme-platform-api:$versions.claimvalidator"
 
     implementation 'uk.gov.justice.service.laa:laa-spring-boot-starter-auth'
     implementation 'uk.gov.justice.service.laa:laa-spring-boot-starter-sql-scanner'
