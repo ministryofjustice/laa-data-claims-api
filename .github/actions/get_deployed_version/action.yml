@@ -1,0 +1,91 @@
+name: Get deployed version
+description: Get the currently deployed container image and image tag from a Kubernetes deployment
+
+inputs:
+  kube-cert:
+    description: Kubernetes cluster authentication certificate
+    required: true
+
+  kube-token:
+    description: Kubernetes cluster authentication token
+    required: true
+
+  kube-cluster:
+    description: Kubernetes cluster name
+    required: true
+
+  kube-namespace:
+    description: Kubernetes namespace
+    required: true
+
+  deployment:
+    description: Kubernetes deployment name
+    required: true
+
+  container:
+    description: Container name. If omitted, the first container in the deployment is used.
+    required: false
+    default: ""
+
+outputs:
+  image:
+    description: Full deployed container image
+    value: ${{ steps.deployed.outputs.image }}
+
+  image-tag:
+    description: Deployed container image tag
+    value: ${{ steps.deployed.outputs.image-tag }}
+
+runs:
+  using: composite
+
+  steps:
+    - name: Authenticate to cluster
+      uses: ministryofjustice/laa-reusable-github-actions/.github/actions/authenticate_to_cluster@2aa2676c3cd9876ec7037ee8b3d729d0306cb7c6
+      with:
+        kube-cert: ${{ inputs.kube-cert }}
+        kube-token: ${{ inputs.kube-token }}
+        kube-cluster: ${{ inputs.kube-cluster }}
+        kube-namespace: ${{ inputs.kube-namespace }}
+
+    - name: Get deployed image
+      id: deployed
+      shell: bash
+      env:
+        KUBE_NAMESPACE: ${{ inputs.kube-namespace }}
+        DEPLOYMENT: ${{ inputs.deployment }}
+        CONTAINER: ${{ inputs.container }}
+      run: |
+        set -euo pipefail
+
+        if [ -n "$CONTAINER" ]; then
+          IMAGE=$(kubectl get deployment "$DEPLOYMENT" \
+            --namespace "$KUBE_NAMESPACE" \
+            -o jsonpath="{.spec.template.spec.containers[?(@.name=='$CONTAINER')].image}")
+        else
+          IMAGE=$(kubectl get deployment "$DEPLOYMENT" \
+            --namespace "$KUBE_NAMESPACE" \
+            -o jsonpath='{.spec.template.spec.containers[0].image}')
+        fi
+
+        if [ -z "$IMAGE" ]; then
+          echo "::error::Unable to determine deployed image for deployment '$DEPLOYMENT'"
+          exit 1
+        fi
+
+        IMAGE_NAME="${IMAGE##*/}"
+
+        if [[ "$IMAGE_NAME" != *:* ]]; then
+          echo "::error::Deployed image does not contain a tag: $IMAGE"
+          exit 1
+        fi
+
+        IMAGE_TAG="${IMAGE_NAME##*:}"
+
+        echo "Deployment: $DEPLOYMENT"
+        echo "Namespace:  $KUBE_NAMESPACE"
+        echo "Image:      $IMAGE"
+        echo "Image tag:  $IMAGE_TAG"
+
+        echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+        echo "image-tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"

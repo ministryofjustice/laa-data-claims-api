@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
+import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.ClaimSearchRequest;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentPayload;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentResult;
@@ -45,6 +46,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClaimResultSetMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.mapper.ClientMapper;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimAmendmentPatch;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimInquestDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPost;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
@@ -97,6 +99,8 @@ public class ClaimService
   private final ClaimSearchRequestValidator claimSearchRequestValidator;
   private final ClaimAmendmentService claimAmendmentService;
   private final StatusCoercer statusCoercer;
+  private final ClaimInquestService claimInquestService;
+  private final ClaimsApiProperties claimsApiProperties;
 
   private static final Set<String> IGNORED_FIELDS =
       Set.of(
@@ -140,8 +144,8 @@ public class ClaimService
    */
   @Transactional
   public UUID createClaim(UUID submissionId, ClaimPost claimPost) {
+    claimInquestService.rejectInquestPostWhenDisabled(claimPost);
     final Submission submission = requireEntity(submissionId);
-
     // Belt-and-braces duplicate guard. The authoritative, race-safe enforcement is the database
     // partial unique index (uq_claim_submission_line_number); this pre-check simply gives callers a
     // clean 409 (DuplicateClaimException) on the common path and fails fast before any writes.
@@ -196,6 +200,8 @@ public class ClaimService
       clientRepository.save(client);
     }
 
+    claimInquestService.saveInquestData(claim, claimPost);
+
     return claim.getId();
   }
 
@@ -224,6 +230,9 @@ public class ClaimService
     claimCaseRepository
         .findByClaimId(claimId)
         .ifPresent(claimCase -> claimMapper.updateClaimResponseFromClaimCase(claimCase, response));
+
+    response.setInquestDetail(claimInquestService.getClaimInquestDetailForResponse(claimId));
+    claimInquestService.clearIsInquestIfFlagDisabled(response.getFeeCalculationResponse());
     return response;
   }
 
@@ -237,7 +246,10 @@ public class ClaimService
   @Transactional(readOnly = true)
   public ClaimResponseV2 getClaimV2(UUID submissionId, UUID claimId) {
     Claim claim = requireClaim(submissionId, claimId);
-    return claimMapper.toClaimResponseV2(claim);
+    ClaimResponseV2 response = claimMapper.toClaimResponseV2(claim);
+    response.setInquestDetail(claimInquestService.getClaimInquestDetailForResponse(claimId));
+    claimInquestService.clearIsInquestIfFlagDisabled(response.getFeeCalculationResponse());
+    return response;
   }
 
   /**
@@ -257,6 +269,7 @@ public class ClaimService
   @Transactional
   public void updateClaim(UUID submissionId, UUID claimId, ClaimAmendmentPatch claimPatch) {
     Claim claim = requireClaim(submissionId, claimId);
+    claimInquestService.ignoreIsInquestPatchWhenDisabled(claimPatch);
 
     statusCoercer.coerce(claimPatch);
     if (isAnAmendment(claimPatch)) {
@@ -432,10 +445,17 @@ public class ClaimService
       // Set created on date, ID is set within ClaimMapper so Hibernate will never set this for you.
       calculatedFeeDetail.setCreatedOn(Instant.now());
 
-      // Get existing calculated fee detail, and set the ID if it exists
+      // Get existing calculated fee detail, and set the ID if it exists.
       calculatedFeeDetailRepository
           .findFirstByClaimIdOrderByCreatedOnDescIdDesc(claim.getId())
-          .ifPresent(x -> calculatedFeeDetail.setId(x.getId()));
+          .ifPresent(
+              existing -> {
+                calculatedFeeDetail.setId(existing.getId());
+                if (!claimsApiProperties.getInquests().isEnabled()
+                    && calculatedFeeDetail.getIsInquest() == null) {
+                  calculatedFeeDetail.setIsInquest(existing.getIsInquest());
+                }
+              });
 
       calculatedFeeDetail.setClaimSummaryFee(requireClaimSummaryFee(claim));
       calculatedFeeDetail.setClaim(claim);
@@ -497,7 +517,8 @@ public class ClaimService
         || client.getClientDateOfBirth() != null
         || StringUtils.hasText(client.getClient2Forename())
         || StringUtils.hasText(client.getClient2Surname())
-        || client.getClient2DateOfBirth() != null;
+        || client.getClient2DateOfBirth() != null
+        || client.getIsMeansTested() != null;
   }
 
   /**
@@ -567,11 +588,30 @@ public class ClaimService
             pageable);
 
     ClaimResultSet response = claimResultSetMapper.toClaimResultSet(page);
+
+    List<UUID> claimIds =
+        response.getContent().stream()
+            .map(ClaimResponse::getId)
+            .filter(Objects::nonNull)
+            .map(UUID::fromString)
+            .distinct()
+            .toList();
+    Map<UUID, Client> clientsByClaimId =
+        claimIds.isEmpty()
+            ? Map.of()
+            : clientRepository.findByClaimIdIn(claimIds).stream()
+                .collect(Collectors.toMap(client -> client.getClaim().getId(), client -> client));
+    Map<UUID, ClaimInquestDetail> inquestDetailsByClaimId =
+        claimsApiProperties.getInquests().isEnabled()
+            ? claimInquestService.getClaimInquestDetails(claimIds, clientsByClaimId)
+            : Map.of();
+
     for (ClaimResponse claimResponse : response.getContent()) {
       if (claimResponse.getId() != null) {
-        clientRepository
-            .findByClaimId(UUID.fromString(claimResponse.getId()))
-            .ifPresent(client -> clientMapper.updateClaimResponseFromClient(client, claimResponse));
+        Client client = clientsByClaimId.get(UUID.fromString(claimResponse.getId()));
+        if (client != null) {
+          clientMapper.updateClaimResponseFromClient(client, claimResponse);
+        }
         claimSummaryFeeRepository
             .findByClaimId(UUID.fromString(claimResponse.getId()))
             .ifPresent(
@@ -591,6 +631,11 @@ public class ClaimService
             validationMessageLogRepository.countAllByClaimIdAndType(
                 UUID.fromString(claimResponse.getId()), ValidationMessageType.WARNING);
         claimMapper.updateTotalWarningMessages(totalWarningsForClaim, claimResponse);
+        claimResponse.setInquestDetail(
+            claimsApiProperties.getInquests().isEnabled()
+                ? inquestDetailsByClaimId.get(UUID.fromString(claimResponse.getId()))
+                : null);
+        claimInquestService.clearIsInquestIfFlagDisabled(claimResponse.getFeeCalculationResponse());
       }
     }
     return response;
@@ -658,6 +703,16 @@ public class ClaimService
                   Collectors.toMap(
                       ClaimWarningCountProjection::getClaimId,
                       ClaimWarningCountProjection::getWarningCount));
+      Map<UUID, Client> clientsByClaimId =
+          claimsApiProperties.getInquests().isEnabled()
+              ? clientRepository.findByClaimIdIn(claimIds).stream()
+                  .collect(Collectors.toMap(client -> client.getClaim().getId(), client -> client))
+              : Map.of();
+
+      Map<UUID, ClaimInquestDetail> inquestDetailsByClaimId =
+          claimsApiProperties.getInquests().isEnabled()
+              ? claimInquestService.getClaimInquestDetails(claimIds, clientsByClaimId)
+              : Map.of();
 
       // 3) Apply counts to each ClaimResponse (pure in-memory)
       for (ClaimResponseV2 claimResponse : response.getContent()) {
@@ -666,6 +721,12 @@ public class ClaimService
           long totalWarningsForClaim = warningsByClaimId.getOrDefault(claimId, 0L);
 
           claimMapper.updateTotalWarningMessagesV2(totalWarningsForClaim, claimResponse);
+          claimResponse.setInquestDetail(
+              claimsApiProperties.getInquests().isEnabled()
+                  ? inquestDetailsByClaimId.get(claimId)
+                  : null);
+          claimInquestService.clearIsInquestIfFlagDisabled(
+              claimResponse.getFeeCalculationResponse());
         }
       }
     }
@@ -705,8 +766,10 @@ public class ClaimService
   }
 
   @Transactional
-  public int updateAllClaimsStatusForSubmission(UUID submissionId, ClaimStatus status) {
-    return claimRepository.updateStatusBySubmissionId(submissionId, status);
+  public int updateAllClaimsStatusForSubmission(
+      UUID submissionId, ClaimStatus status, String updatedByUserId) {
+    return claimRepository.updateStatusBySubmissionId(
+        submissionId, status, updatedByUserId, Instant.now());
   }
 
   /**

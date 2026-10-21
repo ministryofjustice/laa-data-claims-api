@@ -1,0 +1,41 @@
+name: Extract ticket ID
+description: >
+  Extracts a Jira ticket ID (e.g. DSTEW-1234) from a PR/commit title and builds
+  its Jira link. Only looks at the portion of the title before the first ':',
+  matching this repo's 'type(DSTEW-1234): message' / '[DSTEW-1234] - message'
+  conventions. Outputs are empty if no ticket ID is found.
+
+inputs:
+  title:
+    description: "PR or commit title to extract the ticket ID from"
+    required: true
+  jira-base-url:
+    description: "Base URL to prepend to the ticket ID to build the Jira link"
+    required: false
+    default: "https://dsdmoj.atlassian.net/browse/"
+  ticket-pattern:
+    description: "Regex pattern (grep -E) matching the ticket ID"
+    required: false
+    default: "[A-Z]+-[0-9]+"
+
+outputs:
+  ticket-id:
+    description: "Extracted ticket ID, or empty if none found"
+    value: ${{ steps.extract.outputs.ticket-id }}
+  ticket-url:
+    description: "Jira URL for the ticket, or empty if none found"
+    value: ${{ steps.extract.outputs.ticket-url }}
+
+runs:
+  using: composite
+
+  steps:
+    - name: Extract ticket ID
+      id: extract
+      shell: bash
+      env:
+        TITLE: ${{ inputs.title }}
+        JIRA_BASE_URL: ${{ inputs.jira-base-url }}
+        TICKET_PATTERN: ${{ inputs.ticket-pattern }}
+      run: "${{ github.action_path }}/extract-ticket-id.sh"
+

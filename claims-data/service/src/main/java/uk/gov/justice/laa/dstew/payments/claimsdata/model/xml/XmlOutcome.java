@@ -134,10 +134,26 @@ public record XmlOutcome(
     String localAuthorityNumber,
     String paNumber,
     String excessTravelCosts,
-    String medConcludedDate) {
+    String medConcludedDate,
+    String inqClientMeansTested,
+    String deceasedFirstName,
+    String deceasedSurname,
+    String dateOfDeath,
+    String inquestRef,
+    String govDept1,
+    String govDept2,
+    String govDept3,
+    String govDept4,
+    String govDept5,
+    String govDept6,
+    String govDept7,
+    String govDept8,
+    String govDept9,
+    String govDept10) {
   /** Default constructor for XmlOutcome. */
   public XmlOutcome() {
     this(
+        null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
         null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
         null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
         null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
