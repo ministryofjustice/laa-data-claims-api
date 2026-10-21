@@ -31,6 +31,24 @@ public class PageableUtils {
   public static final int DEFAULT_PAGE_NUMBER = 0;
   public static final int DEFAULT_PAGE_SIZE = 20;
 
+  /**
+   * Applies the shared pagination defaults and replaces any caller-provided sort with a
+   * service-owned sort.
+   *
+   * @param pageable resolved request pagination, possibly {@code null} or unpaged
+   * @param sort fixed sort owned by the service
+   * @return a paged request using the requested page and size, or shared defaults, with only the
+   *     supplied sort
+   */
+  public static Pageable withDefaultPaginationAndSort(Pageable pageable, Sort sort) {
+    Objects.requireNonNull(sort, "sort must not be null");
+    int pageNumber =
+        pageable == null || pageable.isUnpaged() ? DEFAULT_PAGE_NUMBER : pageable.getPageNumber();
+    int pageSize =
+        pageable == null || pageable.isUnpaged() ? DEFAULT_PAGE_SIZE : pageable.getPageSize();
+    return PageRequest.of(pageNumber, pageSize, sort);
+  }
+
   /** Implementation: validates against {@code fieldMap}, remaps aliases, appends id tie-breaker. */
   private static Pageable validateAndRemap(
       Pageable pageable,

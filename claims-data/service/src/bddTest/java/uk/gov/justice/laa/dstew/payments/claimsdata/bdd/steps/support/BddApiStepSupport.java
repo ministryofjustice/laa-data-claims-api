@@ -541,9 +541,23 @@ public class BddApiStepSupport {
    * a JSON string carrying a {@code ClaimPatch} shape (snake_case field names).
    */
   public void patchClaimAmendment(UUID submissionId, UUID claimId, String patchJson) {
+    patchClaimAmendment(submissionId, claimId, patchJson, java.util.Map.of());
+  }
+
+  /**
+   * PATCH overload that also sends arbitrary extra request headers — used by the DSTEW-1771
+   * orchestration coverage to prove the retired DSTEW-1743 stub-selector header is ignored by the
+   * real endpoint.
+   */
+  public void patchClaimAmendment(
+      UUID submissionId,
+      UUID claimId,
+      String patchJson,
+      java.util.Map<String, String> extraHeaders) {
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
     headers.add(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN);
+    extraHeaders.forEach(headers::add);
 
     try {
       ResponseEntity<String> response =

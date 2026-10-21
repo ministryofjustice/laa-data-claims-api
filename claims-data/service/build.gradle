@@ -30,12 +30,13 @@ def versions = [
         jacksonToolsBom : '3.1.7'
 ]
 
-// Spring Boot 4.1.1 pins tomcat.version to 11.0.24, which is one patch release below the fix for the
-// critical Snyk finding SNYK-JAVA-ORGAPACHETOMCATEMBED-20302843 (Incorrect Authorization via FORM auth
-// request-method bypass). Overriding the BOM property here ensures the resolved tomcat-embed-*
-// versions are patched.
-// TODO: remove when Spring Boot ships a BOM that sets tomcat.version >= 11.0.25.
-ext['tomcat.version'] = '11.0.25'
+// Spring Boot 4.1.1 pins tomcat.version to 11.0.24, which is below the fix for the critical Snyk
+// findings SNYK-JAVA-ORGAPACHETOMCATEMBED-20302843 (Incorrect Authorization via FORM auth
+// request-method bypass, fixed in 11.0.25) and SNYK-JAVA-ORGAPACHETOMCATEMBED-20552494
+// (Authentication Bypass by Alternate Name, fixed in 11.0.26). Overriding the BOM property here
+// ensures the resolved tomcat-embed-* versions are patched.
+// TODO: remove when Spring Boot ships a BOM that sets tomcat.version >= 11.0.26.
+ext['tomcat.version'] = '11.0.26'
 
 test {
     useJUnitPlatform()
@@ -64,19 +65,26 @@ jacocoTestCoverageVerification {
 // ext['dependency-name.version'] = 'x.x.x'
 
 // **** When adding new overrides please check if any existing overrides are now redundant (by removing them and adding them back only if required)
+dependencyManagement {
+    dependencies {
+        // Upgrade to fix the reported Snyk finding in hibernate-validator
+        dependency 'org.hibernate.validator:hibernate-validator:9.1.5.Final'
+    }
+}
 
 dependencies {
 
     implementation project(':claims-data:api')
 
-    // Security: upgrade logback-classic to 1.6.3 to fix SNYK-JAVA-CHQOSLOGBACK-19882330
+    // Security: upgrade Logback to 1.6.5 to fix CVE-2026-104721 (CWE-22)
+    // and retain the fix for SNYK-JAVA-CHQOSLOGBACK-19882330
     // (Directory Traversal). NOTE: a `constraints {}` entry alone is NOT sufficient here -
     // Spring Boot's platform-imported version (ch.qos.logback:logback-classic:1.5.38) wins
     // over a plain constraint. Only an explicit `implementation` dependency (as below, same
     // pattern used for the jackson-databind override above) actually overrides it - verified
     // with `gradlew dependencyInsight --dependency logback-classic --configuration runtimeClasspath`.
-    implementation 'ch.qos.logback:logback-classic:1.6.3'
-    implementation 'ch.qos.logback:logback-core:1.6.3'
+    implementation 'ch.qos.logback:logback-classic:1.6.5'
+    implementation 'ch.qos.logback:logback-core:1.6.5'
     // Security: pin the vulnerable Netty modules to 4.2.18.Final. Spring Boot's BOM manages
     // Netty at 4.2.17.Final and these are pulled in transitively via reactor-netty-http
     // (spring-boot-starter-webflux):
@@ -131,7 +139,9 @@ dependencies {
 
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8'
     implementation 'org.mapstruct:mapstruct:1.6.3'
-    implementation 'org.javers:javers-spring-boot-starter-sql:7.10.0'
+    implementation 'org.javers:javers-spring-boot-starter-sql:7.11.8'
+    // JaVers still uses Guava 33.5.0-jre; override to fix CVE-2026-102554 (CWE-770).
+    implementation 'com.google.guava:guava:33.7.2-jre'
     implementation platform("com.fasterxml.jackson:jackson-bom:$versions.jacksonBom")
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml'
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-csv'
@@ -156,8 +166,9 @@ dependencies {
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
 
     runtimeOnly "org.flywaydb:flyway-database-postgresql"
-    // Upgrade to fix Incorrect Implementation of Authentication Algorithm (SNYK-JAVA-ORGPOSTGRESQL-17874248)
-    runtimeOnly 'org.postgresql:postgresql:42.7.12'
+    // Fix CVE-2026-107314 (SNYK-JAVA-ORGPOSTGRESQL-20571163) on both compile and runtime
+    // classpaths; the export starter also introduces PostgreSQL as a compile dependency.
+    implementation 'org.postgresql:postgresql:42.7.14'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'

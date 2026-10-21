@@ -1,0 +1,268 @@
+name: Security Snyk container image scan and Slack notification
+
+on:
+  workflow_call:
+    inputs:
+      image_prefix:
+        description: Prefix used when naming the temporary image
+        required: true
+        type: string
+      jar_subproject:
+        description: Required Gradle subproject containing the service JAR to scan
+        required: true
+        type: string
+      java_version:
+        description: Java version used to build the service image
+        required: false
+        default: '25'
+        type: string
+      java_distribution:
+        description: JDK distribution used to build the service image
+        required: false
+        default: corretto
+        type: string
+    secrets:
+      gh_token:
+        description: Required GitHub token used by the image build and scan workflow
+        required: true
+      ecr_repository:
+        description: Required ECR repository used for the container image
+        required: true
+      ecr_region:
+        description: Required AWS region containing the ECR repository
+        required: true
+      ecr_role_to_assume:
+        description: Required AWS role assumed to access the ECR repository
+        required: true
+      snyk_client_id:
+        description: Required Snyk client ID used to authenticate the image scan
+        required: true
+      snyk_client_secret:
+        description: Required Snyk client secret used to authenticate the image scan
+        required: true
+      slack_webhook:
+        description: Slack incoming webhook used for scan failure notifications
+        required: false
+
+jobs:
+  image-scan:
+    name: Container image Snyk scan
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@035ee98ca0047659f865532ea6234abd69529ee8 # v2.5.0
+    permissions:
+      contents: read
+      id-token: write
+      security-events: write
+    with:
+      jar_subproject: ${{ inputs.jar_subproject }}
+      image_version: ${{ format('{0}-snyk-cron-{1}', inputs.image_prefix, github.sha) }}
+      java_version: ${{ inputs.java_version }}
+      java_distribution: ${{ inputs.java_distribution }}
+      image_scan: 'true'
+      publish: 'false'
+    secrets:
+      gh_token: ${{ secrets.gh_token }}
+      ecr_repository: ${{ secrets.ecr_repository }}
+      ecr_region: ${{ secrets.ecr_region }}
+      ecr_role_to_assume: ${{ secrets.ecr_role_to_assume }}
+      snyk_client_id: ${{ secrets.snyk_client_id }}
+      snyk_client_secret: ${{ secrets.snyk_client_secret }}
+
+  vulnerability-report:
+    name: Generate Snyk vulnerability report
+    needs: image-scan
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: read
+    env:
+      GH_TOKEN: ${{ secrets.gh_token }}
+    outputs:
+      alert_count: ${{ steps.alerts.outputs.count }}
+      slack_text: ${{ steps.slack_summary.outputs.text }}
+    steps:
+      # Code scanning alert ingestion from the Snyk SARIF upload (in the shared
+      # ecr-publish-image workflow) is asynchronous. Poll rather than paying a
+      # flat delay on every run - exits early once the analysis lands, capped
+      # at 60s total.
+      - name: Wait for Snyk SARIF processing
+        id: sarif
+        continue-on-error: true
+        shell: bash
+        env:
+          REPO: ${{ github.repository }}
+          REF: ${{ github.ref }}
+          SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          run_started_at=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/$REPO/actions/runs/$RUN_ID/attempts/$RUN_ATTEMPT" \
+            --jq '.run_started_at')
+          if [ -z "$run_started_at" ] || [ "$run_started_at" = "null" ]; then
+            echo "::error::Unable to determine the current run attempt start time"
+            exit 1
+          fi
+          max_attempts=7
+          delay=10
+          for i in $(seq 1 "$max_attempts"); do
+            analysis_id=$(gh api --method GET --paginate \
+              -H "Accept: application/vnd.github+json" \
+              "/repos/$REPO/code-scanning/analyses" \
+              -f ref="$REF" -f tool_name="Snyk Container" -f per_page=100 |
+              jq -sr --arg sha "$SHA" --arg started "$run_started_at" \
+                '[.[][] | select(.commit_sha == $sha and .created_at >= $started)] |
+                 max_by(.created_at, .id) | .id // empty')
+            if [ -n "$analysis_id" ]; then
+              echo "analysis_id=$analysis_id" >> "$GITHUB_OUTPUT"
+              echo "SARIF analysis found on attempt $i"
+              exit 0
+            fi
+            if [ "$i" -lt "$max_attempts" ]; then
+              echo "Attempt $i/$max_attempts: analysis not yet available, waiting ${delay}s"
+              sleep "$delay"
+            fi
+          done
+          echo "::warning::Fresh Snyk SARIF analysis not found after $(((max_attempts - 1) * delay))s; skipping alert report"
+          exit 1
+
+      - name: Fetch Snyk code scanning alerts
+        id: alerts
+        if: ${{ steps.sarif.outcome == 'success' }}
+        continue-on-error: true
+        shell: bash
+        env:
+          REPO: ${{ github.repository }}
+          ANALYSIS_ID: ${{ steps.sarif.outputs.analysis_id }}
+        run: |
+          set -euo pipefail
+          gh api \
+            -H "Accept: application/sarif+json" \
+            "/repos/$REPO/code-scanning/analyses/$ANALYSIS_ID" |
+            jq '
+              [.runs[] |
+                .tool.driver.rules as $rules |
+                (.results // [])[] |
+                . as $result |
+                (if .ruleIndex != null then $rules[.ruleIndex]
+                 else [$rules[] | select(.id == $result.ruleId)][0] end) as $rule |
+                if $rule == null then error("Missing SARIF rule for a finding") else
+                (($rule.properties["security-severity"] | tonumber?) // 0) as $score |
+                {
+                  rule: {
+                    id: ($result.ruleId // $rule.id),
+                    description: ($rule.shortDescription.text // $result.message.text // $rule.id),
+                    security_severity_level:
+                      (if $score >= 9 then "critical" elif $score >= 7 then "high"
+                       elif $score >= 4 then "medium" elif $score > 0 then "low"
+                       else "unknown" end)
+                  },
+                  html_url: $result.properties["github/alertUrl"],
+                  most_recent_instance: {
+                    location: {
+                      path: $result.locations[0].physicalLocation.artifactLocation.uri,
+                      start_line: $result.locations[0].physicalLocation.region.startLine
+                    }
+                  }
+                } end]
+            ' > snyk-alerts.json
+          alert_count=$(jq 'length' snyk-alerts.json)
+          echo "count=$alert_count" >> "$GITHUB_OUTPUT"
+
+      - name: Build vulnerability report
+        if: ${{ steps.alerts.outcome == 'success' }}
+        env:
+          IMAGE_SCAN_RESULT: ${{ needs.image-scan.result }}
+          REF: ${{ github.ref }}
+          ALERT_COUNT: ${{ steps.alerts.outputs.count }}
+        run: |
+          {
+            echo "# Snyk container image vulnerability report"
+            echo
+            echo "Image scan result: \`$IMAGE_SCAN_RESULT\`"
+            echo
+            echo "Found **$ALERT_COUNT** open code scanning alert(s) for \`$REF\`."
+            echo
+            echo "| Severity | Rule | Location | Links |"
+            echo "|---|---|---|---|"
+            jq -r '
+              def sev_rank: {"critical":4,"high":3,"medium":2,"low":1}[.rule.security_severity_level // "unknown"] // 0;
+              def sev_emoji: {"critical":"🔴","high":"🟠","medium":"🟡","low":"⚪"}[.rule.security_severity_level // "unknown"] // "⚫";
+              sort_by(-sev_rank)[] |
+              "| \(sev_emoji) \(.rule.security_severity_level // "unknown" | ascii_upcase) | \(.rule.description // .rule.id) | \(.most_recent_instance.location.path // "n/a"):\(.most_recent_instance.location.start_line // "n/a") | [GitHub](\(.html_url)) / [Snyk](https://security.snyk.io/vuln/\(.rule.id)) |"
+            ' snyk-alerts.json
+          } > snyk-report.md
+          cat snyk-report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload vulnerability report artifact
+        if: ${{ steps.alerts.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: snyk-vulnerability-report
+          path: |
+            snyk-alerts.json
+            snyk-report.md
+          retention-days: 14
+
+      # Show the three highest-severity alerts in Slack and link to the full
+      # GitHub summary. JSON-escape the text for the slack-notify payload.
+      - name: Build Slack summary
+        id: slack_summary
+        env:
+          IMAGE_SCAN_RESULT: ${{ needs.image-scan.result }}
+          ALERT_COUNT: ${{ steps.alerts.outputs.count }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ALERTS_OUTCOME: ${{ steps.alerts.outcome }}
+        run: |
+          scan_result="$IMAGE_SCAN_RESULT"
+          if [ "$scan_result" = "failure" ]; then
+            scan_result="FAILURE"
+          fi
+          {
+            echo "*Snyk scan:* $scan_result - Open alerts: ${ALERT_COUNT:-unknown} (<$RUN_URL|run>)"
+            echo
+            if [ "$ALERTS_OUTCOME" = "success" ]; then
+              jq -r '
+                def sev_rank: {"critical":4,"high":3,"medium":2,"low":1}[.rule.security_severity_level // "unknown"] // 0;
+                def sev_emoji: {"critical":"🔴","high":"🟠","medium":"🟡","low":"⚪"}[.rule.security_severity_level // "unknown"] // "⚫";
+                sort_by(-sev_rank)[:3][] |
+                (.rule.security_severity_level // "unknown" | ascii_upcase) as $sev |
+                (.rule.description // .rule.id | sub("^(Low|Medium|High|Critical) severity - "; "")) as $desc |
+                "\(sev_emoji) [\($sev)] \($desc) - <\(.html_url)|GitHub> · <https://security.snyk.io/vuln/\(.rule.id)|Snyk>"
+              ' snyk-alerts.json
+              if [ "$ALERT_COUNT" -gt 3 ]; then
+                echo
+                echo "$((ALERT_COUNT - 3)) more alert(s) - <$RUN_URL|View the full list in the GitHub summary>"
+              fi
+            else
+              echo "Vulnerability details unavailable - see workflow run logs"
+            fi
+          } > slack-summary.txt
+          echo "text=$(jq -Rs . slack-summary.txt)" >> "$GITHUB_OUTPUT"
+
+  slack-notify:
+    name: Notify Slack via webhook
+    needs: [image-scan, vulnerability-report]
+    if: ${{ always() && needs.image-scan.result == 'failure' }}
+    runs-on: ubuntu-latest
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook }}
+    steps:
+      - name: Send Slack notification
+        if: ${{ env.SLACK_WEBHOOK_URL != '' }}
+        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
+        with:
+          webhook: ${{ env.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "Snyk container image scan for ${{ github.repository }} failed or found vulnerabilities requiring review",
+              "attachments": [
+                {
+                  "color": "#d63384",
+                  "text": ${{ needs.vulnerability-report.outputs.slack_text || '"Vulnerability details unavailable - see workflow run"' }}
+                }
+              ]
+            }

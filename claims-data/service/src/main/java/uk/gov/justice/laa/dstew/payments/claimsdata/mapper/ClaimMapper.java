@@ -56,6 +56,7 @@ public interface ClaimMapper {
   @Mapping(target = "submission", ignore = true)
   @Mapping(target = "dutySolicitor", source = "isDutySolicitor")
   @Mapping(target = "youthCourt", source = "isYouthCourt")
+  @Mapping(target = "inquestDetail", ignore = true)
   Claim toClaim(ClaimPost claimPost);
 
   /**
@@ -67,6 +68,7 @@ public interface ClaimMapper {
   @Mapping(target = "isAmended", source = "amended")
   @Mapping(target = "submissionId", source = "submission.id")
   @Mapping(target = "submissionPeriod", source = "submission.submissionPeriod")
+  @Mapping(target = "inquestDetail", ignore = true)
   ClaimResponse toClaimResponse(Claim entity);
 
   @Mapping(target = "isDutySolicitor", source = "dutySolicitor")
@@ -95,6 +97,7 @@ public interface ClaimMapper {
       target = "feeCalculationResponse",
       source = "latestCalculatedFee",
       qualifiedByName = "mapFeeCalculationResponseFromCalculatedFeeDetail")
+  @Mapping(target = "inquestDetail", ignore = true)
   ClaimResponseV2 toClaimResponseV2(Claim entity);
 
   /**
@@ -113,6 +116,9 @@ public interface ClaimMapper {
   @Mapping(target = "type", source = "message.type")
   @Mapping(target = "source", source = "message.source")
   @Mapping(target = "messageCode", source = "message.messageCode")
+  // Supersession fields not in source DTO; entity defaults handle them (persistence-layer managed)
+  @Mapping(target = "version", ignore = true)
+  @Mapping(target = "supersededByVersion", ignore = true)
   ValidationMessageLog toValidationMessageLog(ValidationMessagePatch message, Claim claim);
 
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)

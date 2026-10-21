@@ -39,6 +39,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -600,6 +601,12 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
     assertThat(createdSubmission.getProviderUserId()).isEqualTo(BULK_SUBMISSION_CREATED_BY_USER_ID);
     assertThat(createdSubmission.getCreatedByUserId()).isEqualTo(API_USER_ID);
+    assertThat(createdSubmission.getUpdatedByUserId())
+        .isEqualTo(createdSubmission.getCreatedByUserId());
+    assertThat(createdSubmission.getCreatedOn()).isNotNull();
+    assertThat(createdSubmission.getUpdatedOn())
+        .isNotNull()
+        .isAfterOrEqualTo(createdSubmission.getCreatedOn());
     assertThat(
             listAppender.list.stream()
                 .filter(
@@ -1541,6 +1548,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
         SubmissionPatch.builder()
             .areaOfLaw(AREA_OF_LAW)
             .legalHelpSubmissionReference(sqlInjectionString)
+            .createdByUserId(API_USER_ID)
             .validationMessages(
                 List.of(
                     new ValidationMessagePatch()
@@ -1566,6 +1574,15 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     assertThat(updated.getId()).isEqualTo(SUBMISSION_1_ID);
     assertThat(updated.getStatus()).isEqualTo(SubmissionStatus.CREATED);
     assertThat(updated.getAreaOfLaw()).isEqualTo(AREA_OF_LAW);
+
+    // The patch must not be able to overwrite the original created_by/created_on audit fields.
+    assertThat(updated.getCreatedByUserId()).isEqualTo(USER_ID);
+    assertThat(updated.getCreatedOn()).isEqualTo(CREATED_ON);
+
+    // When the patch supplies a createdByUserId (the acting user),
+    // it is recorded as the submission's updatedByUserId.
+    assertThat(updated.getUpdatedByUserId()).isEqualTo(API_USER_ID);
+    assertThat(updated.getUpdatedOn()).isNotNull().isAfterOrEqualTo(updated.getCreatedOn());
 
     assertThat(
             listAppender.list.stream()
@@ -1740,6 +1757,7 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
         SubmissionPatch.builder()
             .areaOfLaw(AREA_OF_LAW)
             .status(SubmissionStatus.VALIDATION_FAILED)
+            .createdByUserId(API_USER_ID)
             .build();
     // Verify that Claims are not invalid before patching
     claimRepository
@@ -1756,11 +1774,56 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
         .andExpect(status().isNoContent())
         .andReturn();
 
-    // then: should update the submission and all claims as invalid
+    // then: should update the submission and all claims as invalid, with updated_* audit
+    // fields stamped from the patch's acting user and a fresh timestamp.
     submissionRepository.findById(submission1.getId()).orElseThrow();
     claimRepository
         .findBySubmissionId(submission1.getId())
-        .forEach(claim -> assertThat(claim.getStatus()).isEqualTo(ClaimStatus.INVALID));
+        .forEach(
+            claim -> {
+              assertThat(claim.getStatus()).isEqualTo(ClaimStatus.INVALID);
+              assertThat(claim.getUpdatedByUserId()).isEqualTo(API_USER_ID);
+              assertThat(claim.getUpdatedOn()).isNotNull().isAfter(claim.getCreatedOn());
+            });
+  }
+
+  @Test
+  @DisplayName(
+      "When VALIDATION_FAILED patch omits the acting user, claims keep their previous updater")
+  void updateSubmissionShouldPreserveClaimUpdaterWhenPatchHasNoUser() throws Exception {
+    // given: claims that already have an updater recorded
+    final String previousUpdater = "previous-updater";
+    var seededClaims =
+        List.of(createClaimForSubmission(submission1, 1), createClaimForSubmission(submission1, 2));
+    seededClaims.forEach(claim -> claim.setUpdatedByUserId(previousUpdater));
+    var savedClaims = claimRepository.saveAllAndFlush(seededClaims);
+    var seededUpdatedOn =
+        savedClaims.stream().collect(Collectors.toMap(Claim::getId, Claim::getUpdatedOn));
+
+    SubmissionPatch patch =
+        SubmissionPatch.builder()
+            .areaOfLaw(AREA_OF_LAW)
+            .status(SubmissionStatus.VALIDATION_FAILED)
+            .build();
+
+    // when: patching without an acting user
+    mockMvc
+        .perform(
+            patch(SUBMISSION_BY_ID_ENDPOINT, submission1.getId().toString())
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .content(OBJECT_MAPPER.writeValueAsString(patch)))
+        .andExpect(status().isNoContent());
+
+    // then: status changes, updater is preserved by COALESCE and updatedOn advances
+    claimRepository
+        .findBySubmissionId(submission1.getId())
+        .forEach(
+            claim -> {
+              assertThat(claim.getStatus()).isEqualTo(ClaimStatus.INVALID);
+              assertThat(claim.getUpdatedByUserId()).isEqualTo(previousUpdater);
+              assertThat(claim.getUpdatedOn()).isAfter(seededUpdatedOn.get(claim.getId()));
+            });
   }
 
   // ---- Sorting integration tests ----

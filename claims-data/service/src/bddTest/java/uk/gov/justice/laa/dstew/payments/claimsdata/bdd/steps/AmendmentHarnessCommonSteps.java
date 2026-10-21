@@ -21,7 +21,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimAmendment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.CalculatedFeeDetailRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimAmendmentRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimHistoryRepository;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.ClaimRepository;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryPage;
 
 /**
  * Shared cucumber step glue owned by the DSTEW-2301 amendment BDD harness.
@@ -49,6 +51,7 @@ public class AmendmentHarnessCommonSteps {
   @Autowired private ClaimRepository claimRepository;
   @Autowired private ClaimAmendmentRepository claimAmendmentRepository;
   @Autowired private CalculatedFeeDetailRepository calculatedFeeDetailRepository;
+  @Autowired private ClaimHistoryRepository claimHistoryRepository;
   @Autowired private BddMockServerSupport mock;
 
   // Scenario-scoped bookkeeping. Instantiated fresh per scenario because cucumber-spring gives us
@@ -265,6 +268,25 @@ public class AmendmentHarnessCommonSteps {
           assertThat(now)
               .as("calculated_fee_detail row count for claim %s", sharedPatchContext.getClaimId())
               .isEqualTo(baseline);
+        });
+  }
+
+  @Then("no amendment event was recorded for this claim by this attempt")
+  public void noAmendmentEventWasRecordedForThisClaimByThisAttempt() {
+    step(
+        "assert the claim-history timeline projects no AMENDMENT event — AMENDMENT events derive"
+            + " from the claim_amendment row (and its linked calculated_fee_detail), so a failure"
+            + " outcome that persists neither must surface no event, satisfying the DSTEW-1761"
+            + " invariant that no FSP failure path persists amendment state, calculated-fee rows or"
+            + " events",
+        () -> {
+          // A page size comfortably larger than any timeline a single failed attempt could produce;
+          // we only care whether ANY AMENDMENT-typed event is projected for this claim.
+          ClaimHistoryPage history =
+              claimHistoryRepository.findHistory(sharedPatchContext.getClaimId(), 100, 0);
+          assertThat(history.getEvents())
+              .as("claim-history AMENDMENT events for claim %s", sharedPatchContext.getClaimId())
+              .noneMatch(event -> "AMENDMENT".equals(event.eventType()));
         });
   }
 

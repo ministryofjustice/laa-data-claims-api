@@ -5,6 +5,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.steps.support.Bdd
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.API_URI_PREFIX;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_HEADER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.AUTHORIZATION_TOKEN;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.VOID_CLAIM_URI;
 
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
@@ -110,7 +111,6 @@ public class AssessmentAdvancesClaimVersionSteps {
 
   private static final String POST_ASSESSMENT_PATH =
       API_URI_PREFIX + "/claims/{claimId}/assessments";
-  private static final String VOID_CLAIM_PATH = API_URI_PREFIX + "/claims/{claimId}/void";
   private static final String PATCH_CLAIM_PATH =
       API_URI_PREFIX + "/submissions/{submissionId}/claims/{claimId}";
 
@@ -308,7 +308,7 @@ public class AssessmentAdvancesClaimVersionSteps {
   public void iPostAVoidAssessmentForClaim(String label) {
     step(
         "POST "
-            + VOID_CLAIM_PATH
+            + VOID_CLAIM_URI
             + " with a VOID payload for claim '"
             + label
             + "' — the void endpoint internally sets hasAssessment=true + updatedOn, so "
@@ -900,7 +900,7 @@ public class AssessmentAdvancesClaimVersionSteps {
     try {
       ResponseEntity<String> response =
           restTemplate.exchange(
-              serverInfo.baseUrl() + VOID_CLAIM_PATH,
+              serverInfo.baseUrl() + VOID_CLAIM_URI,
               HttpMethod.POST,
               new HttpEntity<>(jsonBody, headers),
               String.class,

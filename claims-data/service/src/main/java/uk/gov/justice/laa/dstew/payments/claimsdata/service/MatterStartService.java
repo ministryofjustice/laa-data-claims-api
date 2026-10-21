@@ -56,6 +56,7 @@ public class MatterStartService
     matterStart.setId(Uuid7.timeBasedUuid());
     matterStart.setSubmission(submission);
     matterStart.setCreatedByUserId(matterStartPost.getCreatedByUserId());
+    matterStart.setUpdatedByUserId(matterStartPost.getCreatedByUserId());
     matterStartRepository.save(matterStart);
     return matterStart.getId();
   }

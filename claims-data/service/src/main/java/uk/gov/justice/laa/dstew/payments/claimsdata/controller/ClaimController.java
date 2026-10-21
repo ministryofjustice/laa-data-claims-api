@@ -23,12 +23,14 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponse;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResponseV2;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimResultSetV2;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimRetentionLookupResultSet;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateClaim201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessagePatch;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaim201Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.VoidClaimRequest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimRetentionLookupService;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.ClaimService;
 import uk.gov.laa.springboot.sqlscanner.ScanForSql;
 
@@ -41,6 +43,7 @@ public class ClaimController implements ClaimsApi {
   public static final String VOID_CLAIM_ENDPOINT = "/api/v1/claims/{claimId}/void";
 
   private final ClaimService claimService;
+  private final ClaimRetentionLookupService claimRetentionLookupService;
 
   @Override
   @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
@@ -143,6 +146,14 @@ public class ClaimController implements ClaimsApi {
       @ScanForSql(ignoreClasses = ValidationMessagePatch.class) ClaimAmendmentPatch claimPatch) {
     claimService.updateClaim(submissionId, claimId, claimPatch);
     return ResponseEntity.noContent().build();
+  }
+
+  @Override
+  @RateLimiter(name = "claimRateLimiter", fallbackMethod = "genericFallback")
+  public ResponseEntity<ClaimRetentionLookupResultSet> getClaimsRetentionLookup(
+      String officeCode, String ufn, Pageable pageable) {
+    return ResponseEntity.ok(
+        claimRetentionLookupService.getClaimsRetentionLookup(officeCode, ufn, pageable));
   }
 
   @Override

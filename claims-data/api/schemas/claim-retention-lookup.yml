@@ -1,0 +1,59 @@
+# Retention lookup response schemas are isolated from the broader claim response contract so
+# generated clients expose only the fields required for retention decisions.
+claim_retention_lookup_result_set:
+  type: object
+  description: |
+    Paginated response containing VALID claims matching the office_code and UFN composite key.
+    Returns empty content when no VALID claims match the composite key or requested page.
+  required:
+    - content
+    - total_pages
+    - total_elements
+    - number
+    - size
+  properties:
+    content:
+      type: array
+      description: |
+        Minimal VALID claim details ordered by updated_on descending, then claim_id ascending.
+      items:
+        $ref: '#/claim_retention_lookup_claim_detail'
+    total_pages:
+      type: integer
+    total_elements:
+      type: integer
+    number:
+      type: integer
+    size:
+      type: integer
+
+claim_retention_lookup_claim_detail:
+  type: object
+  description: |
+    Minimal claim detail for retention lookup. Contains only retention-relevant fields with no PII.
+    Timestamps use ISO 8601 UTC format.
+  required:
+    - claim_id
+    - status
+    - created_on
+    - updated_on
+  properties:
+    claim_id:
+      type: string
+      format: uuid
+      description: Unique system-generated identifier for the claim.
+    status:
+      type: string
+      enum:
+        - VALID
+      description: Claim status. Only VALID claims are returned.
+    created_on:
+      type: string
+      format: date-time
+      description: |
+        Timestamp when the claim was initially created, in ISO 8601 UTC format.
+    updated_on:
+      type: string
+      format: date-time
+      description: |
+        Timestamp of the most recent update used for retention decisions, in ISO 8601 UTC format.

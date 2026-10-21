@@ -29,6 +29,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
@@ -192,6 +193,12 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     BulkSubmission savedBulkSubmission = submissions.getFirst();
     assertThat(savedBulkSubmission.getCreatedByUserId()).isEqualTo(TEST_USER);
     assertThat(savedBulkSubmission.getStatus()).isEqualTo(BulkSubmissionStatus.READY_FOR_PARSING);
+    assertThat(savedBulkSubmission.getUpdatedByUserId())
+        .isEqualTo(savedBulkSubmission.getCreatedByUserId());
+    assertThat(savedBulkSubmission.getCreatedOn()).isNotNull();
+    assertThat(savedBulkSubmission.getUpdatedOn())
+        .isNotNull()
+        .isAfterOrEqualTo(savedBulkSubmission.getCreatedOn());
     BulkSubmissionOutcome bulkSubmissionOutcome =
         savedBulkSubmission.getData().getOutcomes().getFirst();
     assertThat(bulkSubmissionOutcome.getClientLegallyAided()).isTrue();
@@ -1035,6 +1042,51 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
   }
 
   @Test
+  void shouldReturnHelpfulErrorForCreateSubmissionWhenCsvContainsInvalidUtf8Byte()
+      throws Exception {
+    // given: an otherwise well-formed CSV file containing a byte sequence that is not valid UTF-8
+    byte[] prefix =
+        ("OFFICE,account=0U099L\n"
+                + "SCHEDULE,submissionPeriod=APR-2021,areaOfLaw=LEGAL HELP,scheduleNum=0U099L/LEGAL_HELP\n"
+                + "OUTCOME,matterType=IALB:IFRA,CLIENT_SURNAME=Te")
+            .getBytes(StandardCharsets.UTF_8);
+    byte[] badByte = {(byte) 0xE2, (byte) 0x28, (byte) 0xA1}; // invalid continuation byte
+    byte[] content = new byte[prefix.length + badByte.length];
+    System.arraycopy(prefix, 0, content, 0, prefix.length);
+    System.arraycopy(badByte, 0, content, prefix.length, badByte.length);
+
+    MockMultipartFile file = new MockMultipartFile(FILE, "outcomes.csv", TEXT_CSV, content);
+
+    // when: calling the POST endpoint, then: it should return a bad request with a helpful,
+    // non-raw-parser-text message on both the "detail" and backward-compatible "message" fields.
+    MvcResult result =
+        mockMvc
+            .perform(
+                multipart(POST_BULK_SUBMISSION_ENDPOINT)
+                    .file(file)
+                    .param(USER_ID_PARAM, TEST_USER)
+                    .param(OFFICES_PARAM, TEST_OFFICE)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+    var json = OBJECT_MAPPER.readTree(result.getResponse().getContentAsString());
+    String expectedDetail =
+        "The file contains a character that could not be read as valid text, near line 3,"
+            + " character 47 of the file. Please check the file's encoding (UTF-8 is recommended)"
+            + " and resubmit.";
+    assertThat(json.get(ERROR_DETAIL).asText()).isEqualTo(expectedDetail);
+    assertThat(json.get("message").asText()).isEqualTo(expectedDetail);
+    assertThat(json.get(ERROR_STATUS).asInt()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+    assertThat(json.get(ERROR_TITLE).asText()).isEqualTo(HttpStatus.BAD_REQUEST.getReasonPhrase());
+    assertThat(json.toString())
+        .doesNotContain("Invalid UTF-8")
+        .doesNotContain("byte #")
+        .doesNotContain("char #")
+        .doesNotContain("CharConversionException");
+  }
+
+  @Test
   void shouldReturnErrorForCreateSubmissionWhenTheCsvIsMalformedWithInconsistentNoOfColumns()
       throws Exception {
     // given: a file with an inconsistent no of columns
@@ -1095,13 +1147,15 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     assertThat(json.get(ERROR_TITLE).asText()).isEqualTo(HttpStatus.BAD_REQUEST.getReasonPhrase());
   }
 
-  @Test
-  void shouldGetBulkSubmissionById() throws Exception {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void shouldGetBulkSubmissionById(Boolean inquestFeatureFlag) throws Exception {
     // given: a bulk submission is saved to the database
     var bulkSubmission200ResponseDetails =
         new GetBulkSubmission200ResponseDetails()
             .addMatterStartsItem(ClaimsDataTestUtil.getBulkSubmissionMatterStart())
-            .addOutcomesItem(ClaimsDataTestUtil.getBulkSubmissionOutcome(Boolean.TRUE))
+            .addOutcomesItem(
+                ClaimsDataTestUtil.getBulkSubmissionOutcome(Boolean.TRUE, inquestFeatureFlag))
             .office(ClaimsDataTestUtil.getBulkSubmissionOffice())
             .schedule(ClaimsDataTestUtil.getBulkSubmissionSchedule());
     var bulkSubmission =
@@ -1147,7 +1201,8 @@ public class BulkSubmissionControllerIntegrationTest extends AbstractIntegration
     var bulkSubmission200ResponseDetails =
         new GetBulkSubmission200ResponseDetails()
             .addMatterStartsItem(ClaimsDataTestUtil.getBulkSubmissionMatterStart())
-            .addOutcomesItem(ClaimsDataTestUtil.getBulkSubmissionOutcome(Boolean.TRUE))
+            .addOutcomesItem(
+                ClaimsDataTestUtil.getBulkSubmissionOutcome(Boolean.TRUE, Boolean.FALSE))
             .office(ClaimsDataTestUtil.getBulkSubmissionOffice())
             .schedule(ClaimsDataTestUtil.getBulkSubmissionSchedule());
     var bulkSubmission =

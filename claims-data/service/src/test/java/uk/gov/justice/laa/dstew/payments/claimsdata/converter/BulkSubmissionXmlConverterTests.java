@@ -34,6 +34,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
+import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileExtension;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.xml.XmlOutcome;
@@ -57,6 +58,8 @@ public class BulkSubmissionXmlConverterTests {
   ObjectMapper objectMapper;
 
   BulkSubmissionXmlConverter bulkSubmissionXmlConverter;
+
+  ClaimsApiProperties claimsApiProperties = new ClaimsApiProperties();
 
   private static final String OUTCOMES_INPUT_FILE_LOWER_CASE_M_FOR_MATTER_TYPE =
       "classpath:test_upload_files/xml/outcomes_with_client.xml";
@@ -91,6 +94,8 @@ public class BulkSubmissionXmlConverterTests {
       "classpath:test_upload_files/xml/matter_starts_with_category_code.xml";
   private static final String OUTCOMES_CONVERTED_FILE =
       "classpath:test_upload_files/xml/outcomes_with_client_converted.json";
+  private static final String OUTCOMES_WITH_INQUESTS_CONVERTED_FILE =
+      "classpath:test_upload_files/xml/outcomes_with_client_inquests_converted.json";
   private static final String MISSING_OUTCOMES_SINGLE_ELEMENT_INPUT_FILE =
       "classpath:test_upload_files/xml/missing_outcomes_single.xml";
   private static final String MISSING_OUTCOMES_DOUBLE_ELEMENT_INPUT_FILE =
@@ -121,6 +126,8 @@ public class BulkSubmissionXmlConverterTests {
       "classpath:test_upload_files/xml/multiple_off_and_sch.xml";
   private static final String MALFORMED_SUBMISSION =
       "classpath:test_upload_files/xml/malformed-submission.xml";
+  private static final String OUTCOMES_WITH_CLIENT_INQUESTS_DATA =
+      "classpath:test_upload_files/xml/outcomes_with_client_inquests_data.xml";
 
   /**
    * Initializes the test environment before each test execution. Sets up the ObjectMapper with
@@ -132,7 +139,8 @@ public class BulkSubmissionXmlConverterTests {
     objectMapper.registerModule(new JavaTimeModule());
     objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
     XmlMapper xmlMapper = new XmlMapper();
-    bulkSubmissionXmlConverter = new BulkSubmissionXmlConverter(xmlMapper);
+    claimsApiProperties.getInquests().setEnabled("false");
+    bulkSubmissionXmlConverter = new BulkSubmissionXmlConverter(claimsApiProperties, xmlMapper);
   }
 
   @Nested
@@ -154,6 +162,23 @@ public class BulkSubmissionXmlConverterTests {
       String actual = objectMapper.writeValueAsString(bulkSubmissionSubmission);
 
       File convertedFile = getFile(OUTCOMES_CONVERTED_FILE);
+      String expected = getContent(convertedFile);
+
+      JsonNode expectedNode = objectMapper.readTree(expected);
+      JsonNode actualNode = objectMapper.readTree(actual);
+      assertEquals(expectedNode, actualNode);
+    }
+
+    @Test
+    @DisplayName(
+        "Can convert a bulk submission file with outcomes including inquests data when feature flag active")
+    void canConvertOutcomesToXmlSubmission() throws IOException {
+      claimsApiProperties.getInquests().setEnabled("true");
+      MultipartFile file = getMultipartFile(OUTCOMES_WITH_CLIENT_INQUESTS_DATA);
+      XmlSubmission bulkSubmissionSubmission = bulkSubmissionXmlConverter.convert(file);
+      String actual = objectMapper.writeValueAsString(bulkSubmissionSubmission);
+
+      File convertedFile = getFile(OUTCOMES_WITH_INQUESTS_CONVERTED_FILE);
       String expected = getContent(convertedFile);
 
       JsonNode expectedNode = objectMapper.readTree(expected);
@@ -303,6 +328,20 @@ public class BulkSubmissionXmlConverterTests {
       assertThat(exception.getMessage()).contains(testData.expectedErrorMessage());
     }
 
+    @Test()
+    @DisplayName("Inquest Outcome Items are ignored when rejected with feature flag disabled")
+    void throwsExceptionForInquestOutcomeDateOnFeatureFlagDisabled() throws IOException {
+      MultipartFile file = getMultipartFile(OUTCOMES_WITH_CLIENT_INQUESTS_DATA);
+      BulkSubmissionFileReadException exception =
+          assertThrows(
+              BulkSubmissionFileReadException.class,
+              () -> bulkSubmissionXmlConverter.convert(file),
+              "Expected exception to be thrown");
+      assertThat(exception.getMessage())
+          .contains(
+              "The file contains an unrecognised field INQ_CLIENT_MEANS_TESTED. Correct or remove the field and try again.");
+    }
+
     @Test
     @DisplayName("Throws exception when office is missing")
     void throwsExceptionWhenOfficeMissing() throws IOException {
@@ -412,6 +451,77 @@ public class BulkSubmissionXmlConverterTests {
       XmlOutcome outcome = convert(xml).office().schedule().outcomes().getFirst();
 
       assertThat(outcome.clientSurname()).isEqualTo("Test");
+    }
+
+    @Test
+    @DisplayName(
+        "Throws a helpful, non-raw message when a UTF-8-declared file contains an invalid byte")
+    void throwsHelpfulMessageForInvalidUtf8Byte() {
+      String fourthLineBeforeBadByte = "<outcomeItem name=\"CLIENT_SURNAME\">Te";
+      byte[] prefix =
+          ("<?xml version='1.0' encoding='UTF-8'?>"
+                  + "<submission xmlns=\"http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/\">"
+                  + "<office account=\"2P554H\">\n"
+                  + "<schedule submissionPeriod=\"JAN-2010\" areaOfLaw=\"CRIME LOWER\" scheduleNum=\"ABC/20000L/10\">\n"
+                  + "<outcome matterType=\"INVC\">\n"
+                  + fourthLineBeforeBadByte)
+              .getBytes(StandardCharsets.UTF_8);
+      byte[] badByte = {(byte) 0xE9}; // raw Windows-1252 'é' - invalid alone in UTF-8
+      byte[] suffix =
+          "st</outcomeItem></outcome></schedule></office></submission>"
+              .getBytes(StandardCharsets.UTF_8);
+      byte[] content = new byte[prefix.length + badByte.length + suffix.length];
+      System.arraycopy(prefix, 0, content, 0, prefix.length);
+      System.arraycopy(badByte, 0, content, prefix.length, badByte.length);
+      System.arraycopy(suffix, 0, content, prefix.length + badByte.length, suffix.length);
+
+      MultipartFile file =
+          new MockMultipartFile("file", "submission.xml", "application/xml", content);
+
+      BulkSubmissionFileReadException ex =
+          assertThrows(
+              BulkSubmissionFileReadException.class,
+              () -> bulkSubmissionXmlConverter.convert(file));
+
+      // The bad byte is the character immediately after the (all-ASCII) fourth line's content.
+      int expectedCharacter = fourthLineBeforeBadByte.length() + 1;
+      assertThat(ex.getMessage())
+          .contains("could not be read as valid text")
+          .contains("line 4")
+          .contains("character %d".formatted(expectedCharacter))
+          .doesNotContain("Invalid UTF-8")
+          .doesNotContain("byte #")
+          .doesNotContain("char #")
+          .doesNotContain("WstxIOException");
+    }
+
+    @Test
+    @DisplayName("Correctly declared Windows-1252 XML with a Windows-1252 character still converts")
+    void convertsCorrectlyDeclaredWindows1252Xml() {
+      // U+00E9 e-acute, representable directly in windows-1252, not just UTF-8.
+      String clientSurname = "Caf\u00e9"; // e-acute
+      byte[] content =
+          ("<?xml version='1.0' encoding='windows-1252'?>"
+                  + "<submission xmlns=\"http://www.legalservices.gov.uk/sms/ActivityManagement/XMLSchema/\">"
+                  + "<office account=\"2P554H\">"
+                  + "<schedule submissionPeriod=\"JAN-2010\" areaOfLaw=\"CRIME LOWER\" scheduleNum=\"ABC/20000L/10\">"
+                  + "<outcome matterType=\"INVC\">"
+                  + "<outcomeItem name=\"CLIENT_SURNAME\">"
+                  + clientSurname
+                  + "</outcomeItem>"
+                  + "</outcome>"
+                  + "</schedule>"
+                  + "</office>"
+                  + "</submission>")
+              .getBytes(java.nio.charset.Charset.forName("windows-1252"));
+
+      MultipartFile file =
+          new MockMultipartFile("file", "submission.xml", "application/xml", content);
+
+      XmlSubmission submission = bulkSubmissionXmlConverter.convert(file);
+
+      assertThat(submission.office().schedule().outcomes().getFirst().clientSurname())
+          .isEqualTo(clientSurname);
     }
   }
 

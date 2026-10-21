@@ -59,6 +59,18 @@ public class CucumberSpringConfiguration {
    */
   public static final int FEE_SCHEME_READ_TIMEOUT_MS = 800;
 
+  /**
+   * Amendment-path FSP read timeout (the {@code laa.claims.api.amendments.fee-scheme-platform-api}
+   * client built by {@code WebClientConfiguration}). Distinct from {@link
+   * #FEE_SCHEME_READ_TIMEOUT_MS} above, which shortens the claims-validation-core fee-details
+   * lookup. Kept short (well under production's 3000ms default) so the DSTEW-1761
+   * configured-timeout mapping scenario trips a real client-side timeout in under a second while
+   * every immediate fee-calculation stub still responds comfortably inside it. The amendment FSP
+   * call is a single blocking attempt with no retry, so the timeout path's call count stays
+   * deterministically at one.
+   */
+  public static final int AMENDMENT_FSP_READ_TIMEOUT_MS = 800;
+
   @ServiceConnection
   static PostgreSQLContainer<?> postgresContainer = new PostgreSQLContainer<>("postgres:latest");
 
@@ -88,6 +100,14 @@ public class CucumberSpringConfiguration {
     registry.add("FEE_SCHEME_PLATFORM_API_ACCESS_TOKEN", () -> "");
     registry.add("PROVIDER_DETAILS_API_URL", () -> baseUrl);
     registry.add("PROVIDER_DETAILS_API_ACCESS_TOKEN", () -> "");
+
+    // DSTEW-1761: shorten the amendment-path FSP read timeout (the WebClientConfiguration client
+    // bound to laa.claims.api.amendments.fee-scheme-platform-api) so the configured-timeout mapping
+    // scenario trips a real client-side timeout fast. Immediate fee-calculation stubs respond well
+    // inside this budget, so lowering it is safe across every amendment FSP scenario.
+    registry.add(
+        "laa.claims.api.amendments.fee-scheme-platform-api.readTimeoutMs",
+        () -> String.valueOf(AMENDMENT_FSP_READ_TIMEOUT_MS));
 
     registry.add("laa.dstew.payments.validator.fee-scheme-platform-api.url", () -> baseUrl);
     registry.add("laa.dstew.payments.validator.fee-scheme-platform-api.accessToken", () -> "");

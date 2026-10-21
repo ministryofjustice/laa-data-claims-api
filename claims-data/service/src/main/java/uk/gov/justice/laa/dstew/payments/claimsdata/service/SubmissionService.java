@@ -69,6 +69,7 @@ public class SubmissionService
   private final ClaimService claimService;
   private final MatterStartService matterStartService;
   private final ValidationMessageLogRepository validationMessageLogRepository;
+  private final ValidationMessageLogFactory validationMessageLogFactory;
   private final SubmissionsResultSetMapper submissionsResultSetMapper;
   private final SubmissionEventPublisherService submissionEventPublisherService;
   private final StatusCoercer statusCoercer;
@@ -93,6 +94,7 @@ public class SubmissionService
   public UUID createSubmission(SubmissionPost submissionPost) {
     Submission submission = submissionMapper.toSubmission(submissionPost);
     submission.setCreatedByUserId(submissionPost.getCreatedByUserId());
+    submission.setUpdatedByUserId(submissionPost.getCreatedByUserId());
 
     // This is to ensure that we are only validating form NIL submissions where SubmissionStatus is
     // always READY_FOR_VALIDATION. All other submissions will skip this validation, as they get
@@ -222,6 +224,16 @@ public class SubmissionService
   public void updateSubmission(UUID id, SubmissionPatch submissionPatch) {
     Submission submission = requireEntity(id);
 
+    if (submissionPatch.getCreatedByUserId() == null) {
+      log.warn(
+          "Tombstone: Submission patch received without created_by_user_id. "
+              + "submissionId={}, officeAccountNumber={}, providerUserId={}, areaOfLaw={}",
+          id,
+          submission.getOfficeAccountNumber(),
+          submission.getProviderUserId(),
+          submission.getAreaOfLaw());
+    }
+
     statusCoercer.coerce(submissionPatch);
     submissionMapper.updateSubmissionFromPatch(submissionPatch, submission);
     submissionRepository.save(submission);
@@ -238,7 +250,8 @@ public class SubmissionService
           submission.getId(), SubmissionEventType.SUBMISSION_VALIDATION_SUCCEEDED);
     } else if (submissionPatch.getStatus() == SubmissionStatus.VALIDATION_FAILED) {
       int totalUpdatedClaims =
-          claimService.updateAllClaimsStatusForSubmission(id, ClaimStatus.INVALID);
+          claimService.updateAllClaimsStatusForSubmission(
+              id, ClaimStatus.INVALID, submissionPatch.getCreatedByUserId());
       log.debug("Updated {} claims to INVALID status for submission {}", totalUpdatedClaims, id);
     }
 
@@ -249,7 +262,7 @@ public class SubmissionService
           .forEach(
               message -> {
                 ValidationMessageLog validationLog =
-                    submissionMapper.toValidationMessageLog(message, submission);
+                    validationMessageLogFactory.createForSubmission(message, submission);
                 validationMessageLogRepository.save(validationLog);
               });
     }

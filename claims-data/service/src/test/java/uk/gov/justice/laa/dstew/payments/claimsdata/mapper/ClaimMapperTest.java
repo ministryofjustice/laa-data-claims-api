@@ -980,6 +980,7 @@ class ClaimMapperTest {
         .isEqualTo(feeCalculationPatch.getJrFormFillingAmount());
     assertThat(calculatedFeeDetail.getTravelAndWaitingCostsAmount())
         .isEqualTo(feeCalculationPatch.getTravelAndWaitingCostsAmount());
+    assertThat(calculatedFeeDetail.getIsInquest()).isEqualTo(feeCalculationPatch.getIsInquest());
 
     // Test fields from BoltOnPatch
     assertThat(calculatedFeeDetail.getBoltOnTotalFeeAmount())
@@ -1121,6 +1122,7 @@ class ClaimMapperTest {
     feeDetail.setBoltOnSubstantiveHearingFee(new BigDecimal("7.30"));
     feeDetail.setEscapeCaseFlag(Boolean.TRUE);
     feeDetail.setSchemeId("SCHEME-01");
+    feeDetail.setIsInquest(Boolean.TRUE);
     feeDetail.setClaimSummaryFee(claimSummaryFee);
 
     final ClaimResponse claimResponse = new ClaimResponse();
@@ -1144,6 +1146,7 @@ class ClaimMapperTest {
         .isEqualByComparingTo(new BigDecimal("20.00"));
     assertThat(feeCalculationResponse.getCalculatedVatAmount())
         .isEqualByComparingTo(new BigDecimal("20.00"));
+    assertThat(feeCalculationResponse.getIsInquest()).isTrue();
     assertThat(feeCalculationResponse.getDisbursementAmount())
         .isEqualByComparingTo(new BigDecimal("10.00"));
     assertThat(feeCalculationResponse.getRequestedNetDisbursementAmount())
@@ -1549,6 +1552,7 @@ class ClaimMapperTest {
     feeCalculationPatch.detentionTravelAndWaitingCostsAmount(new BigDecimal("347.63"));
     feeCalculationPatch.jrFormFillingAmount(new BigDecimal("612.98"));
     feeCalculationPatch.travelAndWaitingCostsAmount(new BigDecimal("398.12"));
+    feeCalculationPatch.isInquest(true);
     return feeCalculationPatch;
   }
 

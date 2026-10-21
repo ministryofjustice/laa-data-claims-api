@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
+import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionFileReadException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.CategoryCode;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.FileExtension;
@@ -28,6 +29,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvOffice;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvOutcome;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSchedule;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSubmission;
+import uk.gov.justice.laa.dstew.payments.claimsdata.validator.BulkSubmissionOutcomeFieldValidator;
 
 /** Converter responsible for converting bulk submissions in TXT/CSV format. */
 @Slf4j
@@ -36,6 +38,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.csv.CsvSubmission;
 public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
   private final ObjectMapper objectMapper;
   private final CsvMapper csvMapper;
+  private final ClaimsApiProperties claimsApiProperties;
   static final String MISSING_RECORD_TYPE_ERROR =
       "Some rows are missing a record type tag. Each row must start with a valid type (e.g., OUTCOME, MATTERSTARTS). Please correct and resubmit.";
 
@@ -93,9 +96,16 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
             csvSchedule =
                 objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvSchedule.class);
           }
-          case CsvHeader.OUTCOME ->
-              csvOutcomes.add(
-                  objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvOutcome.class));
+          case CsvHeader.OUTCOME -> {
+            boolean inquestsEnabled = claimsApiProperties.getInquests().isEnabled();
+            csvBulkSubmissionRow
+                .values()
+                .keySet()
+                .forEach(
+                    field -> BulkSubmissionOutcomeFieldValidator.validate(field, inquestsEnabled));
+            csvOutcomes.add(
+                objectMapper.convertValue(csvBulkSubmissionRow.values(), CsvOutcome.class));
+          }
           case CsvHeader.MATTERSTARTS ->
               csvMatterStarts.addAll(toMatterStartRows(csvBulkSubmissionRow.values()));
           case CsvHeader.IMMIGRATIONCLR -> csvImmigrationClr.add(Map.copyOf(values));
@@ -107,6 +117,10 @@ public class BulkSubmissionCsvConverter implements BulkSubmissionConverter {
       throw new BulkSubmissionFileReadException(
           "Failed to read bulk submission file: %s".formatted(extractReadableMessage(e)), e);
     } catch (IOException e) {
+      if (BulkSubmissionDecodingFailures.isCharacterDecodingFailure(e)) {
+        throw new BulkSubmissionFileReadException(
+            BulkSubmissionDecodingFailures.characterDecodingMessage(file, false), e);
+      }
       throw new BulkSubmissionFileReadException("Failed to read bulk submission file", e);
     }
 

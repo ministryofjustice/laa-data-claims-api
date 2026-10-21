@@ -65,7 +65,8 @@ public interface SubmissionMapper {
 
   /**
    * Update a {@link Submission} entity from a {@link SubmissionPatch}. Only non-null values from
-   * the patch will be copied.
+   * the patch will be copied. The patch's {@code createdByUserId} represents the user making this
+   * patch request. (when present) is recorded as the submission's {@code updatedByUserId}.
    *
    * @param patch the patch object
    * @param entity the entity to update
@@ -76,7 +77,8 @@ public interface SubmissionMapper {
   @Mapping(target = "submissionPeriodSortKey", ignore = true)
   @Mapping(target = "officeAccountNumberSortKey", ignore = true)
   @Mapping(target = "createdOn", ignore = true)
-  @Mapping(target = "updatedByUserId", ignore = true)
+  @Mapping(target = "createdByUserId", ignore = true)
+  @Mapping(target = "updatedByUserId", source = "createdByUserId")
   @Mapping(target = "updatedOn", ignore = true)
   void updateSubmissionFromPatch(SubmissionPatch patch, @MappingTarget Submission entity);
 
@@ -89,9 +91,8 @@ public interface SubmissionMapper {
   @Mapping(target = "type", source = "message.type")
   @Mapping(target = "source", source = "message.source")
   @Mapping(target = "messageCode", source = "message.messageCode")
-  @Mapping(
-      target = "claimAmendment",
-      ignore = true) // Ignores the optional link during base parsing
+  @Mapping(target = "version", ignore = true)
+  @Mapping(target = "supersededByVersion", ignore = true)
   ValidationMessageLog toValidationMessageLog(
       ValidationMessagePatch message, Submission submission);
 

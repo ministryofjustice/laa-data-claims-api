@@ -20,7 +20,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.GovernmentDepartmentR
 class ClaimInterestedDepartmentRepositoryIntegrationTest extends AbstractIntegrationTest {
 
   @Autowired private ClaimInterestedDepartmentRepository claimInterestedDepartmentRepository;
-  @Autowired private GovernmentDepartmentRefRepository governmentDepartmentRefRepository;
 
   @BeforeEach
   void setup() {
@@ -32,16 +31,7 @@ class ClaimInterestedDepartmentRepositoryIntegrationTest extends AbstractIntegra
       "findByClaimIdOrderByDisplayOrderAsc returns interested department rows for the claim")
   void findByClaimIdOrderByDisplayOrderAscReturnsInterestedDepartmentRowsForTheClaim() {
     var claim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
-    GovernmentDepartmentRef ref =
-        governmentDepartmentRefRepository.saveAndFlush(
-            GovernmentDepartmentRef.builder()
-                .id(UUID.randomUUID())
-                .governmentDepartmentCode("CODE")
-                .displayLabel("LABEL")
-                .isActive(true)
-                .displayOrder(1)
-                .createdByUserId("TEST")
-                .build());
+    GovernmentDepartmentRef ref = findSeededDepartmentByLabel(DEPARTMENT_MINISTRY_OF_JUSTICE);
 
     ClaimInterestedDepartment saved =
         claimInterestedDepartmentRepository.saveAndFlush(
@@ -76,36 +66,9 @@ class ClaimInterestedDepartmentRepositoryIntegrationTest extends AbstractIntegra
           + " insertion order")
   void findByClaimIdOrderByDisplayOrderAscReturnsRowsInDisplayOrderRegardlessOfInsertionOrder() {
     var claim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
-    GovernmentDepartmentRef dept1 =
-        governmentDepartmentRefRepository.saveAndFlush(
-            GovernmentDepartmentRef.builder()
-                .id(UUID.randomUUID())
-                .governmentDepartmentCode("CODE1")
-                .displayLabel("LABEL1")
-                .isActive(true)
-                .displayOrder(1)
-                .createdByUserId("TEST")
-                .build());
-    GovernmentDepartmentRef dept2 =
-        governmentDepartmentRefRepository.saveAndFlush(
-            GovernmentDepartmentRef.builder()
-                .id(UUID.randomUUID())
-                .governmentDepartmentCode("CODE2")
-                .displayLabel("LABEL2")
-                .isActive(true)
-                .displayOrder(2)
-                .createdByUserId("TEST")
-                .build());
-    GovernmentDepartmentRef dept3 =
-        governmentDepartmentRefRepository.saveAndFlush(
-            GovernmentDepartmentRef.builder()
-                .id(UUID.randomUUID())
-                .governmentDepartmentCode("CODE3")
-                .displayLabel("LABEL3")
-                .isActive(true)
-                .displayOrder(3)
-                .createdByUserId("TEST")
-                .build());
+    GovernmentDepartmentRef dept1 = findSeededDepartmentByLabel(DEPARTMENT_MINISTRY_OF_JUSTICE);
+    GovernmentDepartmentRef dept2 = findSeededDepartmentByLabel(DEPARTMENT_HEALTH_AND_SOCIAL_CARE);
+    GovernmentDepartmentRef dept3 = findSeededDepartmentByLabel(DEPARTMENT_HOME_OFFICE);
 
     claimInterestedDepartmentRepository.saveAndFlush(
         ClaimInterestedDepartment.builder()
@@ -144,26 +107,8 @@ class ClaimInterestedDepartmentRepositoryIntegrationTest extends AbstractIntegra
   @DisplayName("departments are all stored and returned in supplied order")
   void repeatedOccurrencesOfSameDepartmentAreAllStoredAndReturnedInSuppliedOrder() {
     var claim = claimRepository.findById(CLAIM_1_ID).orElseThrow();
-    GovernmentDepartmentRef dept1 =
-        governmentDepartmentRefRepository.saveAndFlush(
-            GovernmentDepartmentRef.builder()
-                .id(UUID.randomUUID())
-                .governmentDepartmentCode("MOJ")
-                .displayLabel("Ministry of Justice")
-                .isActive(true)
-                .displayOrder(1)
-                .createdByUserId("TEST")
-                .build());
-    GovernmentDepartmentRef dept2 =
-        governmentDepartmentRefRepository.saveAndFlush(
-            GovernmentDepartmentRef.builder()
-                .id(UUID.randomUUID())
-                .governmentDepartmentCode("DHSC")
-                .displayLabel("Department for Health and Social Care")
-                .isActive(true)
-                .displayOrder(2)
-                .createdByUserId("TEST")
-                .build());
+    GovernmentDepartmentRef dept1 = findSeededDepartmentByLabel(DEPARTMENT_MINISTRY_OF_JUSTICE);
+    GovernmentDepartmentRef dept2 = findSeededDepartmentByLabel(DEPARTMENT_HEALTH_AND_SOCIAL_CARE);
 
     ClaimInterestedDepartment occurrence1 =
         claimInterestedDepartmentRepository.saveAndFlush(
@@ -221,26 +166,9 @@ class ClaimInterestedDepartmentRepositoryIntegrationTest extends AbstractIntegra
             .createdByUserId("TEST")
             .build();
 
-    GovernmentDepartmentRef deptRef =
-        governmentDepartmentRefRepository.saveAndFlush(
-            GovernmentDepartmentRef.builder()
-                .id(UUID.randomUUID())
-                .governmentDepartmentCode("DEPT-CODE")
-                .displayLabel("LABEL2")
-                .isActive(true)
-                .displayOrder(1)
-                .createdByUserId("TEST")
-                .build());
+    GovernmentDepartmentRef deptRef = findSeededDepartmentByLabel(DEPARTMENT_MINISTRY_OF_JUSTICE);
     GovernmentDepartmentRef deptRef2 =
-        governmentDepartmentRefRepository.saveAndFlush(
-            GovernmentDepartmentRef.builder()
-                .id(UUID.randomUUID())
-                .governmentDepartmentCode("DEPT-CODE-2")
-                .displayLabel("LABEL3")
-                .isActive(true)
-                .displayOrder(2)
-                .createdByUserId("TEST")
-                .build());
+        findSeededDepartmentByLabel(DEPARTMENT_HEALTH_AND_SOCIAL_CARE);
 
     ClaimInterestedDepartment row2 =
         claimInterestedDepartmentRepository.saveAndFlush(
@@ -280,16 +208,7 @@ class ClaimInterestedDepartmentRepositoryIntegrationTest extends AbstractIntegra
       "a department occurrence referencing a nonexistent claim is rejected by the database")
   void occurrenceReferencingNonexistentClaimIsRejected() {
     UUID nonexistentClaimId = UUID.randomUUID();
-    GovernmentDepartmentRef ref =
-        governmentDepartmentRefRepository.saveAndFlush(
-            GovernmentDepartmentRef.builder()
-                .id(UUID.randomUUID())
-                .governmentDepartmentCode("NONEXISTENT-CODE")
-                .displayLabel("LABEL")
-                .isActive(true)
-                .displayOrder(1)
-                .createdByUserId("TEST")
-                .build());
+    GovernmentDepartmentRef ref = findSeededDepartmentByLabel(DEPARTMENT_MINISTRY_OF_JUSTICE);
 
     ClaimInterestedDepartment occurrence =
         ClaimInterestedDepartment.builder()

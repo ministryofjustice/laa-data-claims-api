@@ -3,9 +3,13 @@ package uk.gov.justice.laa.dstew.payments.claimsdata;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.BULK_SUBMISSION_ID;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.RETENTION_LOOKUP_OFFICE_CODE;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.RETENTION_LOOKUP_UFN;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.SUBMISSION_ID;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getAmendmentHistoryEvent;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getAssessmentHistoryEvent;
@@ -20,6 +24,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClaimV2;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getClient;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getMatterStart;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getRetentionLookupClaim;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getSubmission;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getSubmissionHistoryEvent;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUtil.getValidationMessageProjection;
@@ -63,10 +68,14 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.context.ActiveProfiles;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ClaimValidationResult;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationIssue;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationSeverity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.GovernmentDepartmentRef;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionValidationException;
@@ -250,6 +259,43 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     current.setStatus(ClaimStatus.VALID);
     current.setVersion(5L);
     when(claimRepository.findByIdAndSubmissionId(any(), any())).thenReturn(Optional.of(current));
+  }
+
+  @State("the claim amendment fails field validation")
+  public void theClaimAmendmentFailsFieldValidation() {
+    log.info("Setting up state: the claim amendment fails field validation");
+    claimsApiProperties.getAmendments().setEnabled("true");
+    Claim current = getClaim();
+    current.setStatus(ClaimStatus.VALID);
+    current.setVersion(1L);
+    when(claimRepository.findByIdAndSubmissionId(any(), any())).thenReturn(Optional.of(current));
+    when(calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(any()))
+        .thenReturn(Optional.of(getCalculatedFeeDetail()));
+    stubAmendmentReferenceData();
+    doReturn(
+            ClaimValidationResult.builder()
+                .issues(
+                    List.of(
+                        validationError(
+                            "INVALID_CLIENT_DATE_OF_BIRTH",
+                            "Client date of birth must be between 01/01/1900 and today",
+                            "client_date_of_birth"),
+                        validationError(
+                            "INVALID_CASE_START_DATE",
+                            "Case start date must not be in the future",
+                            "case_start_date")))
+                .build())
+        .when(validationService)
+        .validateClaim(any(), any());
+  }
+
+  private static ValidationIssue validationError(String code, String message, String path) {
+    return ValidationIssue.builder()
+        .code(code)
+        .message(message)
+        .path(path)
+        .severity(ValidationSeverity.ERROR)
+        .build();
   }
 
   @State("the claim request contains invalid data")
@@ -459,6 +505,19 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     when(assessmentRepository.save(any())).thenReturn(savedAssessment);
   }
 
+  @State("a claim that is already void exists")
+  public void aClaimThatIsAlreadyVoidExists() {
+    log.info("Setting up state: a claim that is already void exists");
+    Claim claim = getClaim();
+    claim.setStatus(ClaimStatus.VOID);
+    claim.setVersion(0L);
+    when(claimRepository.findById(any())).thenReturn(Optional.of(claim));
+    when(claimSummaryFeeRepository.existsById(any())).thenReturn(true);
+    when(claimSummaryFeeRepository.getReferenceById(any())).thenReturn(getClaimSummaryFee());
+    when(claimSummaryFeeRepository.findByClaimId(any()))
+        .thenReturn(Optional.of(getClaimSummaryFee()));
+  }
+
   @SneakyThrows
   @State("no data exists for the export")
   public void noDataExistsForTheExport() {
@@ -479,7 +538,7 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
         .thenReturn(new PageImpl(Arrays.asList(getClaim(), getClaim())));
     when(claimRepository.findByIdAndSubmissionId(any(), any()))
         .thenReturn(Optional.ofNullable(getClaim()));
-    when(clientRepository.findByClaimId(any())).thenReturn(Optional.ofNullable(getClient()));
+    when(clientRepository.findByClaimIdIn(any())).thenReturn(List.of(getClient()));
     when(claimSummaryFeeRepository.findByClaimId(any()))
         .thenReturn(Optional.of(getClaimSummaryFee()));
     when(calculatedFeeDetailRepository.findFirstByClaimIdOrderByCreatedOnDescIdDesc(any()))
@@ -506,6 +565,51 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     log.info("Setting up state: no claims exist for the search criteria");
     when(claimRepository.findAll(any(Specification.class), any(Pageable.class)))
         .thenReturn(new PageImpl(Collections.emptyList()));
+  }
+
+  @State("no claims exist for office code and UFN")
+  public void noClaimsExistForOfficeCodeAndUfn() {
+    log.info("Setting up state: no claims exist for office code and UFN");
+    stubRetentionLookupClaims(Collections.emptyList());
+  }
+
+  @State("one claim exists for office code and UFN")
+  public void oneClaimExistsForOfficeCodeAndUfn() {
+    log.info("Setting up state: one claim exists for office code and UFN");
+    stubRetentionLookupClaims(List.of(getRetentionLookupClaim(0)));
+  }
+
+  @State("multiple claims exist for office code and UFN")
+  public void multipleClaimsExistForOfficeCodeAndUfn() {
+    log.info("Setting up state: multiple claims exist for office code and UFN");
+    stubRetentionLookupClaims(
+        List.of(
+            getRetentionLookupClaim(0), getRetentionLookupClaim(1), getRetentionLookupClaim(2)));
+  }
+
+  @State("more claims exist than fit on one page")
+  public void moreClaimsExistThanFitOnOnePage() {
+    log.info("Setting up state: more claims exist than fit on one page");
+    stubRetentionLookupClaims(
+        List.of(
+            getRetentionLookupClaim(0),
+            getRetentionLookupClaim(1),
+            getRetentionLookupClaim(2),
+            getRetentionLookupClaim(3),
+            getRetentionLookupClaim(4)));
+  }
+
+  private void stubRetentionLookupClaims(List<Claim> claims) {
+    when(claimRepository.findValidByOfficeAccountNumberAndUniqueFileNumber(
+            eq(RETENTION_LOOKUP_OFFICE_CODE), eq(RETENTION_LOOKUP_UFN), any(Pageable.class)))
+        .thenAnswer(
+            invocation -> {
+              Pageable pageable = invocation.getArgument(2);
+              int start = (int) Math.min(pageable.getOffset(), claims.size());
+              int end = (int) Math.min((long) start + pageable.getPageSize(), claims.size());
+              List<Claim> pageContent = claims.subList(start, end);
+              return new PageImpl<>(pageContent, pageable, claims.size());
+            });
   }
 
   @State("no validation messages exist for the search criteria")
@@ -549,6 +653,10 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   @State("amendment reference data exists")
   public void amendmentReferenceDataExists() {
     log.info("Setting up state: amendment reference data exists");
+    stubAmendmentReferenceData();
+  }
+
+  private void stubAmendmentReferenceData() {
     when(requestedByReferenceRepository.findByOrderByDisplayOrderAsc())
         .thenReturn(
             List.of(
@@ -583,6 +691,29 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
         .thenReturn(Collections.emptyList());
   }
 
+  @State("government department reference data exists")
+  public void governmentDepartmentReferenceDataExists() {
+    log.info("Setting up state: government department reference data exists");
+    when(governmentDepartmentRefRepository.findByIsActiveTrueOrderByDisplayOrderAsc())
+        .thenReturn(
+            List.of(
+                GovernmentDepartmentRef.builder()
+                    .id(UUID.fromString("00000000-0000-0000-0000-0000000000c1"))
+                    .governmentDepartmentCode("MINISTRY_OF_JUSTICE")
+                    .displayLabel("Ministry of Justice")
+                    .isActive(true)
+                    .displayOrder(10)
+                    .createdByUserId("pact-test")
+                    .build()));
+  }
+
+  @State("no government department reference data exists")
+  public void noGovernmentDepartmentReferenceDataExists() {
+    log.info("Setting up state: no government department reference data exists");
+    when(governmentDepartmentRefRepository.findByIsActiveTrueOrderByDisplayOrderAsc())
+        .thenReturn(Collections.emptyList());
+  }
+
   @State("no assessments exist for the claim")
   public void noAssessmentExistsForClaimId() {
     log.info("Setting up state: no assessments exist for the claim");
@@ -600,6 +731,23 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
                 .assessmentOutcome(AssessmentOutcome.PAID_IN_FULL)
                 .assessmentReason("Reason")
                 .assessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT)
+                .fixedFeeAmount(new BigDecimal("50.00"))
+                .netProfitCostsAmount(new BigDecimal("100.50"))
+                .netTravelCostsAmount(new BigDecimal("10.00"))
+                .netWaitingCostsAmount(new BigDecimal("11.00"))
+                .netCostOfCounselAmount(new BigDecimal("12.00"))
+                .disbursementAmount(new BigDecimal("13.00"))
+                .disbursementVatAmount(new BigDecimal("2.60"))
+                .detentionTravelAndWaitingCostsAmount(new BigDecimal("14.00"))
+                .jrFormFillingAmount(new BigDecimal("15.00"))
+                .boltOnAdjournedHearingFee(new BigDecimal("16.00"))
+                .boltOnCmrhOralFee(new BigDecimal("17.00"))
+                .boltOnCmrhTelephoneFee(new BigDecimal("18.00"))
+                .boltOnSubstantiveHearingFee(new BigDecimal("19.00"))
+                .boltOnHomeOfficeInterviewFee(new BigDecimal("21.00"))
+                .isVatApplicable(true)
+                .allowedTotalVat(new BigDecimal("20.10"))
+                .allowedTotalInclVat(new BigDecimal("120.60"))
                 .createdByUserId("User")
                 .createdOn(Instant.now())
                 .id(UUID.randomUUID())
