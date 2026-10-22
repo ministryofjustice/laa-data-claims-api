@@ -29,8 +29,11 @@ example row) also carries `@Regression` at scenario level.
 
 | Tag | Contents | Where it runs |
 |---|---|---|
-| `@Regression` | E2E happy-path pack (~20% of the suite) | PRs (`deploy-uat-preview.yml`) and `main` (`deploy-main.yml`) |
-| `@Full_Regression` | Every BDD scenario | Nightly Mon–Fri + manual dispatch (`bdd-full-regression-nightly.yml`) |
+| `@Regression` | E2E happy-path pack (~20% of the suite) | UAT gate — PR UAT preview (`deploy-uat-preview.yml`) and `deploy-uat` on `main` (`deploy-main.yml` job `bdd-test`) |
+| `@Full_Regression` | Every BDD scenario | Staging gate — `deploy-staging` on `main` (`deploy-main.yml` job `bdd-full-regression`, runs in parallel with the UAT path) |
+
+Both packs run in-process in CI (embedded app + Testcontainers), not against the
+deployed UAT/Staging apps; they gate promotion to those environments.
 
 ```zsh
 ./gradlew :claims-data:service:bddTest -Dcucumber.filter.tags='@Regression'

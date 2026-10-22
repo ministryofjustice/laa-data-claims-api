@@ -72,6 +72,25 @@ jobs:
           gh-packages-token: ${{ secrets.GH_PACKAGES_TOKEN }}
           tags: '@Regression'
 
+  bdd-full-regression:
+    runs-on: ubuntu-latest
+    needs: [ release ]
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Run BDD @Full_Regression pack
+        uses: ./.github/actions/bdd-test
+        with:
+          java-version: *JAVA_VERSION
+          java-distribution: *JDK_DISTRIBUTION
+          tags: '@Full_Regression'
+          artifact-name: bdd-full-regression-reports
+
   ecr-publish-image:
     needs: [ release, bdd-test ]
     uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@57f8d08c0cf807ea64fc121500669c4d3dada733 # v2.5.1
@@ -181,6 +200,7 @@ jobs:
       - ecr-publish-image
       - pact-test
       - deploy-uat
+      - bdd-full-regression
     environment: staging
     permissions:
       id-token: write
