@@ -485,6 +485,19 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     when(assessmentRepository.save(any())).thenReturn(savedAssessment);
   }
 
+  @State("a claim that is already void exists")
+  public void aClaimThatIsAlreadyVoidExists() {
+    log.info("Setting up state: a claim that is already void exists");
+    Claim claim = getClaim();
+    claim.setStatus(ClaimStatus.VOID);
+    claim.setVersion(0L);
+    when(claimRepository.findById(any())).thenReturn(Optional.of(claim));
+    when(claimSummaryFeeRepository.existsById(any())).thenReturn(true);
+    when(claimSummaryFeeRepository.getReferenceById(any())).thenReturn(getClaimSummaryFee());
+    when(claimSummaryFeeRepository.findByClaimId(any()))
+        .thenReturn(Optional.of(getClaimSummaryFee()));
+  }
+
   @SneakyThrows
   @State("no data exists for the export")
   public void noDataExistsForTheExport() {
@@ -698,6 +711,23 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
                 .assessmentOutcome(AssessmentOutcome.PAID_IN_FULL)
                 .assessmentReason("Reason")
                 .assessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT)
+                .fixedFeeAmount(new BigDecimal("50.00"))
+                .netProfitCostsAmount(new BigDecimal("100.50"))
+                .netTravelCostsAmount(new BigDecimal("10.00"))
+                .netWaitingCostsAmount(new BigDecimal("11.00"))
+                .netCostOfCounselAmount(new BigDecimal("12.00"))
+                .disbursementAmount(new BigDecimal("13.00"))
+                .disbursementVatAmount(new BigDecimal("2.60"))
+                .detentionTravelAndWaitingCostsAmount(new BigDecimal("14.00"))
+                .jrFormFillingAmount(new BigDecimal("15.00"))
+                .boltOnAdjournedHearingFee(new BigDecimal("16.00"))
+                .boltOnCmrhOralFee(new BigDecimal("17.00"))
+                .boltOnCmrhTelephoneFee(new BigDecimal("18.00"))
+                .boltOnSubstantiveHearingFee(new BigDecimal("19.00"))
+                .boltOnHomeOfficeInterviewFee(new BigDecimal("21.00"))
+                .isVatApplicable(true)
+                .allowedTotalVat(new BigDecimal("20.10"))
+                .allowedTotalInclVat(new BigDecimal("120.60"))
                 .createdByUserId("User")
                 .createdOn(Instant.now())
                 .id(UUID.randomUUID())
