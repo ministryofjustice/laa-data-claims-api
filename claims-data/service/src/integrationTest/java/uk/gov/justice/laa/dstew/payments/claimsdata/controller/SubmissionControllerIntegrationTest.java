@@ -1606,11 +1606,12 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
             .andExpect(status().isOk())
             .andReturn();
     List<SubmissionBase> submissions =
-        OBJECT_MAPPER.readValue(
-                listResult.getResponse().getContentAsString(), SubmissionsResultSet.class)
+        OBJECT_MAPPER
+            .readValue(listResult.getResponse().getContentAsString(), SubmissionsResultSet.class)
             .getContent();
     assertThat(submissions).hasSize(2);
-    assertThat(Objects.requireNonNull(submissions.getFirst().getApprovedOn()).toInstant()).isEqualTo(approvedOn);
+    assertThat(Objects.requireNonNull(submissions.getFirst().getApprovedOn()).toInstant())
+        .isEqualTo(approvedOn);
     assertThat(submissions.getFirst().getApprovedByUserId()).isEqualTo("approval-user");
     assertThat(submissions.get(1).getApprovedOn()).isNull();
     assertThat(submissions.get(1).getApprovedByUserId()).isNull();
