@@ -741,10 +741,12 @@ class SubmissionServiceTest {
         Submission.builder().id(id).status(SubmissionStatus.valueOf(status)).build();
     SubmissionPatch patch =
         new SubmissionPatch().status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS);
-    when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
+    when(submissionRepository.findByIdAndLockForUpdate(id)).thenReturn(Optional.of(entity));
 
     submissionService.updateSubmission(id, patch);
 
+    verify(submissionRepository).findByIdAndLockForUpdate(id);
+    verify(submissionRepository, never()).findById(id);
     verify(submissionMapper).updateSubmissionFromPatch(patch, entity);
     verify(submissionRepository).save(entity);
     verifyNoInteractions(submissionEventPublisherService);
@@ -768,11 +770,13 @@ class SubmissionServiceTest {
         Submission.builder().id(id).status(SubmissionStatus.valueOf(status)).build();
     SubmissionPatch patch =
         new SubmissionPatch().status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS);
-    when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
+    when(submissionRepository.findByIdAndLockForUpdate(id)).thenReturn(Optional.of(entity));
 
     assertThrows(
         SubmissionBadRequestException.class, () -> submissionService.updateSubmission(id, patch));
 
+    verify(submissionRepository).findByIdAndLockForUpdate(id);
+    verify(submissionRepository, never()).findById(id);
     verifyNoInteractions(submissionEventPublisherService, submissionMapper);
     verify(submissionRepository, never()).save(any());
   }
