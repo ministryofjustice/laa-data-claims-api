@@ -41,6 +41,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,10 +55,13 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sns.model.CreateTopicRequest;
 import software.amazon.awssdk.services.sns.model.SubscribeRequest;
@@ -107,6 +111,10 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   @Autowired private SnsClient snsClient;
 
   @Autowired private EntityManager entityManager;
+
+  @Autowired private PlatformTransactionManager transactionManager;
+
+  @Autowired private JdbcTemplate jdbcTemplate;
 
   @Value("${aws.sqs.queue-name}")
   private String queueName;
@@ -2285,6 +2293,100 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
 
     Submission unchanged = submissionRepository.findById(submissionId).orElseThrow();
     assertThat(unchanged.getStatus()).isEqualTo(SubmissionStatus.VALIDATION_SUCCEEDED);
+  }
+
+  @Test
+  @DisplayName("Concurrent metadata patch preserves approval status and audit fields")
+  void concurrentMetadataPatchPreservesApproval() throws Exception {
+    UUID submissionId = Uuid7.timeBasedUuid();
+    String officeAccountNumber = "1234";
+    submissionRepository.saveAndFlush(
+        pendingApprovalSubmission(
+                submissionId, officeAccountNumber, SubmissionStatus.VALIDATED_PENDING_APPROVAL)
+            .build());
+
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    try {
+      Future<Integer> metadataPatch =
+          new TransactionTemplate(transactionManager)
+              .execute(
+                  transactionStatus -> {
+                    Integer approvalTransactionPid =
+                        jdbcTemplate.queryForObject("SELECT pg_backend_pid()", Integer.class);
+                    try {
+                      mockMvc
+                          .perform(
+                              patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
+                                  .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                                  .contentType(MediaType.APPLICATION_JSON)
+                                  .content(
+                                      finalValidationPatchBody(submissionId, officeAccountNumber)))
+                          .andExpect(status().isNoContent());
+                    } catch (Exception exception) {
+                      throw new IllegalStateException("Unable to approve submission", exception);
+                    }
+
+                    Future<Integer> request =
+                        executor.submit(
+                            () ->
+                                mockMvc
+                                    .perform(
+                                        patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
+                                            .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                                            .contentType(MediaType.APPLICATION_JSON)
+                                            .content(
+                                                OBJECT_MAPPER.writeValueAsString(
+                                                    new SubmissionPatch()
+                                                        .crimeLowerScheduleNumber("crime-123"))))
+                                    .andReturn()
+                                    .getResponse()
+                                    .getStatus());
+                    awaitSubmissionLockWaiter(approvalTransactionPid);
+                    return request;
+                  });
+
+      assertThat(metadataPatch).isNotNull();
+      assertThat(metadataPatch.get(10, TimeUnit.SECONDS)).isEqualTo(204);
+
+      Submission updated = submissionRepository.findById(submissionId).orElseThrow();
+      assertThat(updated.getStatus()).isEqualTo(SubmissionStatus.READY_FOR_FINAL_VALIDATION);
+      assertThat(updated.getApprovedByUserId()).isEqualTo(USER_ID);
+      assertThat(updated.getApprovedOn()).isNotNull();
+      assertThat(updated.getCrimeLowerScheduleNumber()).isEqualTo("crime-123");
+
+      List<Message> approvalEvents =
+          IntegrationTestUtils.drainMessagesOfType(
+              sqsClient, queueUrl, SubmissionEventType.APPROVE_SUBMISSION.toString());
+      assertThat(approvalEvents).hasSize(1);
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  private void awaitSubmissionLockWaiter(Integer blockingPid) {
+    // Wait until postgres confirms the metadata PATCH is blocked.
+    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+    while (System.nanoTime() < deadline) {
+      Boolean lockWaiterPresent =
+          jdbcTemplate.queryForObject(
+              "SELECT EXISTS (SELECT 1 FROM pg_stat_activity AS waiter "
+                  + "WHERE wait_event_type = 'Lock' "
+                  + "AND datname = current_database() "
+                  + "AND ? = ANY(pg_blocking_pids(waiter.pid)))",
+              Boolean.class,
+              blockingPid);
+      if (Boolean.TRUE.equals(lockWaiterPresent)) {
+        return;
+      }
+      try {
+        Thread.sleep(10);
+      } catch (InterruptedException exception) {
+        Thread.currentThread().interrupt();
+        throw new IllegalStateException(
+            "Interrupted while waiting for metadata PATCH to block", exception);
+      }
+    }
+    throw new AssertionError("Metadata PATCH did not wait for approval transaction " + blockingPid);
   }
 
   private static String inProgressPatchBody(UUID submissionId) throws JsonProcessingException {

@@ -441,10 +441,11 @@ class SubmissionServiceTest {
     UUID id = Uuid7.timeBasedUuid();
     Submission entity = Submission.builder().id(id).build();
     SubmissionPatch patch = new SubmissionPatch().crimeLowerScheduleNumber("456");
-    when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
+    when(submissionRepository.findByIdAndLockForUpdate(id)).thenReturn(Optional.of(entity));
 
     submissionService.updateSubmission(id, patch);
 
+    verify(submissionRepository).findByIdAndLockForUpdate(id);
     verify(submissionMapper).updateSubmissionFromPatch(patch, entity);
     verify(submissionRepository).save(entity);
   }
@@ -462,7 +463,7 @@ class SubmissionServiceTest {
             .areaOfLaw(AreaOfLaw.CRIME_LOWER)
             .build();
     SubmissionPatch patch = new SubmissionPatch().crimeLowerScheduleNumber("456");
-    when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
+    when(submissionRepository.findByIdAndLockForUpdate(id)).thenReturn(Optional.of(entity));
 
     submissionService.updateSubmission(id, patch);
 
@@ -487,7 +488,7 @@ class SubmissionServiceTest {
     Submission entity = Submission.builder().id(id).build();
     SubmissionPatch patch =
         new SubmissionPatch().crimeLowerScheduleNumber("456").createdByUserId("user-123");
-    when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
+    when(submissionRepository.findByIdAndLockForUpdate(id)).thenReturn(Optional.of(entity));
 
     submissionService.updateSubmission(id, patch);
 
@@ -800,7 +801,7 @@ class SubmissionServiceTest {
     UUID id = Uuid7.timeBasedUuid();
     Submission entity = Submission.builder().id(id).build();
     SubmissionPatch patch = new SubmissionPatch().status(SubmissionStatus.VALIDATION_FAILED);
-    when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
+    when(submissionRepository.findByIdAndLockForUpdate(id)).thenReturn(Optional.of(entity));
 
     submissionService.updateSubmission(id, patch);
 
@@ -817,7 +818,7 @@ class SubmissionServiceTest {
     Submission entity = Submission.builder().id(id).build();
     SubmissionPatch patch =
         new SubmissionPatch().status(SubmissionStatus.VALIDATION_FAILED).createdByUserId("user-1");
-    when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
+    when(submissionRepository.findByIdAndLockForUpdate(id)).thenReturn(Optional.of(entity));
 
     submissionService.updateSubmission(id, patch);
 
@@ -831,7 +832,7 @@ class SubmissionServiceTest {
     UUID id = Uuid7.timeBasedUuid();
     Submission entity = Submission.builder().id(id).build();
     SubmissionPatch patch = new SubmissionPatch().status(SubmissionStatus.VALIDATION_SUCCEEDED);
-    when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
+    when(submissionRepository.findByIdAndLockForUpdate(id)).thenReturn(Optional.of(entity));
 
     submissionService.updateSubmission(id, patch);
 
@@ -851,7 +852,7 @@ class SubmissionServiceTest {
         new SubmissionPatch()
             .legalHelpSubmissionReference("LEGAL-123")
             .mediationSubmissionReference("MED-123");
-    when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
+    when(submissionRepository.findByIdAndLockForUpdate(id)).thenReturn(Optional.of(entity));
 
     submissionService.updateSubmission(id, patch);
 
@@ -865,7 +866,7 @@ class SubmissionServiceTest {
   void shouldThrowWhenSubmissionNotFoundOnUpdate() {
     UUID id = Uuid7.timeBasedUuid();
     SubmissionPatch patch = new SubmissionPatch();
-    when(submissionRepository.findById(id)).thenReturn(Optional.empty());
+    when(submissionRepository.findByIdAndLockForUpdate(id)).thenReturn(Optional.empty());
 
     assertThrows(
         SubmissionNotFoundException.class, () -> submissionService.updateSubmission(id, patch));
@@ -885,7 +886,7 @@ class SubmissionServiceTest {
             .technicalMessage("A technical message");
 
     SubmissionPatch patch = new SubmissionPatch().validationMessages(List.of(messagePatch));
-    when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
+    when(submissionRepository.findByIdAndLockForUpdate(id)).thenReturn(Optional.of(entity));
     when(validationMessageLogFactory.createForSubmission(any(), eq(entity)))
         .thenReturn(new ValidationMessageLog());
 
@@ -1229,7 +1230,7 @@ class SubmissionServiceTest {
     UUID id = Uuid7.timeBasedUuid();
     Submission entity = Submission.builder().id(id).build();
     SubmissionPatch patch = new SubmissionPatch().status(SubmissionStatus.READY_FOR_VALIDATION);
-    when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
+    when(submissionRepository.findByIdAndLockForUpdate(id)).thenReturn(Optional.of(entity));
 
     submissionService.updateSubmission(id, patch);
 
@@ -1245,7 +1246,7 @@ class SubmissionServiceTest {
     UUID id = Uuid7.timeBasedUuid();
     Submission entity = Submission.builder().id(id).build();
     SubmissionPatch patch = new SubmissionPatch().validationMessages(Collections.emptyList());
-    when(submissionRepository.findById(id)).thenReturn(Optional.of(entity));
+    when(submissionRepository.findByIdAndLockForUpdate(id)).thenReturn(Optional.of(entity));
 
     submissionService.updateSubmission(id, patch);
 

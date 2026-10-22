@@ -243,11 +243,9 @@ public class SubmissionService
     }
 
     Submission submission =
-        submissionPatch.getStatus() == SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS
-            ? submissionRepository
-                .findByIdAndLockForUpdate(id)
-                .orElseThrow(() -> entityNotFoundSupplier("No entity found with id: " + id).get())
-            : requireEntity(id);
+        submissionRepository
+            .findByIdAndLockForUpdate(id)
+            .orElseThrow(() -> entityNotFoundSupplier("No entity found with id: " + id).get());
 
     if (submissionPatch.getStatus() == SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS) {
       requireAwaitingFinalValidation(submission);
