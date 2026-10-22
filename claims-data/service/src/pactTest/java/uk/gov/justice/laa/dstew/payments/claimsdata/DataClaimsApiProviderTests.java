@@ -175,7 +175,8 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   @State("the system is ready to update a submission")
   public void theSystemIsReadyToUpdateASubmission() {
     log.info("Setting up state: the system is ready to update a submission");
-    when(submissionRepository.findById(any())).thenReturn(Optional.of(getSubmission()));
+    when(submissionRepository.findByIdAndLockForUpdate(any()))
+        .thenReturn(Optional.of(getSubmission()));
     when(submissionRepository.update(any())).thenReturn(1L);
   }
 
@@ -231,7 +232,8 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   @State("the submission patch contains invalid data")
   public void theSubmissionPatchContainsInvalidData() {
     log.info("Setting up state: the submission patch contains invalid data");
-    when(submissionRepository.findById(any())).thenReturn(Optional.of(getSubmission()));
+    when(submissionRepository.findByIdAndLockForUpdate(any()))
+        .thenReturn(Optional.of(getSubmission()));
     doThrow(new SubmissionBadRequestException("Error found"))
         .when(submissionRepository)
         .save(any());
