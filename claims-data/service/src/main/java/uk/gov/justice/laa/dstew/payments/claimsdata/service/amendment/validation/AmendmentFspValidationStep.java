@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationIssue;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationSeverity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.client.FeeSchemePlatformRestClient;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.AmendmentDiff;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.CalculatedFeeDetailSnapshot;
@@ -153,6 +155,7 @@ public class AmendmentFspValidationStep implements ClaimAmendmentValidationStep 
 
       state.setBeforeFee(beforeFeeSnapshot);
       state.setAfterFee(afterFeeSnapshot);
+      state.addWarnings(toWarningIssues(fspResponse));
 
     } catch (WebClientResponseException.BadRequest ex) {
       // 1595-E: Catch semantic rejections
@@ -239,6 +242,25 @@ public class AmendmentFspValidationStep implements ClaimAmendmentValidationStep 
             message ->
                 message != null && message.getType() == ValidationMessagesInner.TypeEnum.ERROR)
         .map(AmendmentFspValidationStep::toAmendmentValidationError)
+        .toList();
+  }
+
+  private static List<ValidationIssue> toWarningIssues(FeeCalculationResponse fspResponse) {
+    List<ValidationMessagesInner> messages = fspResponse.getValidationMessages();
+    if (messages == null || messages.isEmpty()) {
+      return List.of();
+    }
+    return messages.stream()
+        .filter(
+            message ->
+                message != null && message.getType() == ValidationMessagesInner.TypeEnum.WARNING)
+        .map(
+            message ->
+                ValidationIssue.builder()
+                    .code(message.getCode())
+                    .message(message.getMessage())
+                    .severity(ValidationSeverity.WARNING)
+                    .build())
         .toList();
   }
 
