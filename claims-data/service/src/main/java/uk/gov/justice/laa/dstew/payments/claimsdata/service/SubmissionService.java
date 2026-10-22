@@ -242,7 +242,12 @@ public class SubmissionService
       return;
     }
 
-    Submission submission = requireEntity(id);
+    Submission submission =
+        submissionPatch.getStatus() == SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS
+            ? submissionRepository
+                .findByIdAndLockForUpdate(id)
+                .orElseThrow(() -> entityNotFoundSupplier("No entity found with id: " + id).get())
+            : requireEntity(id);
 
     if (submissionPatch.getStatus() == SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS) {
       requireAwaitingFinalValidation(submission);
