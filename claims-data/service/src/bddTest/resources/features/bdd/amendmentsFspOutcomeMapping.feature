@@ -34,8 +34,6 @@ Feature: Amendment FSP outcome mapping
   #   * Correlation-id / structured-log scraping for support detail — not observable from this harness;
   #     the user-safe-message-without-payload-leak half of that AC IS asserted (no-payload-leak below).
 
-  Background:
-
   Scenario: FSP business validation failure rejects the amendment and surfaces the FSP message
     Given a fresh amendable claim on a legal-help submission at version 0
     And the PDA service will respond "authorised" within the amendment-path timeout
@@ -112,4 +110,3 @@ Feature: Amendment FSP outcome mapping
     When I submit a well-formed pricing amendment
     Then the amendment is accepted
     And exactly 1 outbound FSP call was made
-

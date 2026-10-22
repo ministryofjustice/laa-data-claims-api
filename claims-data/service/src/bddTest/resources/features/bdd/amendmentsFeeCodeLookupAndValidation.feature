@@ -46,7 +46,7 @@ Feature: Amendment fee-code lookup & fee-code Area-of-Law gate
   #               Fee Code Details per-fee-code field rules -> LFSP-418.
 
   Background:
-    And the Fee Code Details lookup is available
+    Given the Fee Code Details lookup is available
 
   # ============================================================================
   # Fee-code Area-of-Law gate (INVALID_FEE_CODE_AREA_OF_LAW_CHANGE)
@@ -150,5 +150,4 @@ Feature: Amendment fee-code lookup & fee-code Area-of-Law gate
       | HTTP 5xx                | respond with HTTP 503         | technical_failure |
       | connection failure      | reject the connection         | technical_failure |
       | genuine service timeout | not respond before 30 seconds | timeout           |
-
 

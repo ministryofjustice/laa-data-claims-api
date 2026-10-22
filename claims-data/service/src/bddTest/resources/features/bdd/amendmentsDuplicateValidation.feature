@@ -61,7 +61,7 @@ Feature: Amendment duplicate validation - reuse existing rules against post-amen
   #   proves the exemption by the successful commit.
 
   Background:
-    And the amendment PDA trigger will report "pda_relevant" as "true"
+    Given the amendment PDA trigger will report "pda_relevant" as "true"
     And the PDA service will respond "authorised" within the amendment-path timeout
 
   # ============================================================================
@@ -183,4 +183,3 @@ Feature: Amendment duplicate validation - reuse existing rules against post-amen
     Then the amendment is rejected with error code "INVALID_CLAIM_HAS_DUPLICATE_IN_ANOTHER_SUBMISSION"
     And no duplicate amendment state was committed
     And no amendment-related event was published for this attempt
-

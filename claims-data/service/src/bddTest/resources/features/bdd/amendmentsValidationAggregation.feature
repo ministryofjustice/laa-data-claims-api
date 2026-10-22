@@ -45,8 +45,6 @@ Feature: Amendment Step 12 — validation-message aggregation & outcome check
   # OUT OF SCOPE: individual per-field message wording;
   #               terminal technical response shape → owning integration tickets.
 
-  Background:
-
   # ============================================================================
   # Cross-source aggregation (parent-level guarantee)
   # ============================================================================
@@ -148,7 +146,6 @@ Feature: Amendment Step 12 — validation-message aggregation & outcome check
     Then the response envelope matches the existing structured validation error contract
     And each message includes a distinct error code
     And each message preserves the user-displayable text supplied by the source validator
-
 
 
 

@@ -48,8 +48,6 @@ Feature: Amendment Step 13 — FSP skip/continue decision from pricing classific
   #               (DSTEW-1757); FSP request shape / client (DSTEW-1759..1761);
   #               non-functional requirements.
 
-  Background:
-
   # AC1 — no changed field is pricing-impacting → Step 13 skips FSP. FSP is armed
   # and available, so "no call" proves the decision to skip, not an unavailable
   # dependency.
@@ -124,4 +122,3 @@ Feature: Amendment Step 13 — FSP skip/continue decision from pricing classific
     When I submit the amendment and wait for the event service to complete amendment validation
     Then the response contains error code "INVALID_FIELD_NOT_AMENDABLE_FOR_AREA_OF_LAW"
     And no outbound FSP call was made from the amendment harness
-

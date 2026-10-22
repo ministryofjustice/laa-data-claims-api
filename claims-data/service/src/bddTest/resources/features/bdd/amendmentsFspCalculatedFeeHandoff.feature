@@ -29,8 +29,6 @@ Feature: Amendment FSP calculated-fee persistence handoff
   # computation are unit-covered by FeeSchemeHandoffFactoryTest; this feature is the AaBC-facing
   # end-to-end contract.
 
-  Background:
-
   Scenario: Monetary change — prepared row is linked, is_price_changed true, FSP diff entry present, previous row retained
     Given a fresh amendable claim on a legal-help submission at version 0
     And the PDA service will respond "authorised" within the amendment-path timeout
@@ -77,4 +75,3 @@ Feature: Amendment FSP calculated-fee persistence handoff
     # Confirms the surviving row is the untouched pre-amendment baseline (same total, still unlinked),
     # i.e. it was retained in place and not edited — not merely that one row happens to remain.
     And the previous calculated_fee_detail row is retained unchanged
-

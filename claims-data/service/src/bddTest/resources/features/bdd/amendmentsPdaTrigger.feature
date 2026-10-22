@@ -22,7 +22,7 @@ Feature: Amendment changed-field classifier — PDA trigger (pda_relevant)
   #               amendmentsPdaOutcomeMapping.feature.
 
   Background:
-    And a positive PDA cache entry exists for the pre-amendment officeCode and resolved effectiveDate
+    Given a positive PDA cache entry exists for the pre-amendment officeCode and resolved effectiveDate
 
   # ============================================================================
   # pda_relevant = true
@@ -183,4 +183,3 @@ Feature: Amendment changed-field classifier — PDA trigger (pda_relevant)
       | Office Code changed             | OFFICE_CODE_CHANGED      |
       | Fee Code changed                | FEE_CODE_CHANGED         |
       | Resolved effective date changed | EFFECTIVE_DATE_CHANGED   |
-

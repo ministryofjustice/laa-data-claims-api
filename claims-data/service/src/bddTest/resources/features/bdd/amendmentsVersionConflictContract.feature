@@ -54,8 +54,6 @@ Feature: Amendment stale-version conflict — shared CLAIM_VERSION_CONFLICT enve
   #     exercised by the provider pact suite (DataClaimsApiProviderTests), not BDD.
   #   * Non-functional requirements (latency / external-call budget sizing).
 
-  Background:
-
   # AC1 — an early (initial_check) stale conflict returns the shared envelope with
   # the stable code and the exact user-safe message.
   @DS1754_1
@@ -115,4 +113,3 @@ Feature: Amendment stale-version conflict — shared CLAIM_VERSION_CONFLICT enve
     And the stale-version conflict log does not contain a current claim version
     And the stale-version conflict log contains the current claim id
     And the stale-version conflict log carries no amendment payload or financial values
-

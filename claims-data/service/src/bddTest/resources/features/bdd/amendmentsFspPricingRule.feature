@@ -19,7 +19,7 @@ Feature: Amendment changed-field classifier — FSP pricing rule (impacts_pricin
   #               Assessed-claim pricing rejection → DSTEW-1767.
 
   Background:
-    And the FSP fee-calculation request-body field map is the authoritative pricing rule source
+    Given the FSP fee-calculation request-body field map is the authoritative pricing rule source
 
   @smoke @DS1757_1
   Scenario Outline: FSP pricing — changed field on the FSP request body is pricing-impacting
@@ -120,4 +120,3 @@ Feature: Amendment changed-field classifier — FSP pricing rule (impacts_pricin
     When I submit the amendment and wait for the event service to complete amendment validation
     Then the classifier output has impacts_pricing "false"
     And the classifier source_rule_reference is "NO_FSP_REQUEST_BODY_FIELD_CHANGED"
-

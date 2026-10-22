@@ -24,7 +24,7 @@ Feature: PDA re-validation — call mechanics (cache, single-attempt timeout, de
   #               Parent-flow integration → amendmentsPdaParentIntegration.feature.
 
   Background:
-    And the amendment PDA trigger will report "pda_relevant" as "true"
+    Given the amendment PDA trigger will report "pda_relevant" as "true"
 
   @PDA_4
   Scenario: Successful PDA response inside the configured amendment-path timeout is returned as-is
@@ -81,4 +81,3 @@ Feature: PDA re-validation — call mechanics (cache, single-attempt timeout, de
     Then the observed outbound PDA call count is exactly 1
     And the outbound PDA request used officeCode "OFC-NEW" and effectiveDate "2026-04-01"
     And no outbound PDA request was made using officeCode "OFC-OLD" or effectiveDate "2025-04-01"
-

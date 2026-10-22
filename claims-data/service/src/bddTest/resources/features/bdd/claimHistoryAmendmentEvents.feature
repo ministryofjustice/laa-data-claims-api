@@ -32,8 +32,6 @@ Feature: Claim history timeline — AMENDMENT event FSP repricing & escape-case 
   # population (DSTEW-1595), current-value display, wording / formatting,
   # escape-case business rules.
 
-  Background:
-
   # ============================================================================
   # AC1 / AC2 — Pricing amendment with FSP-linked calc-fee row
   # ============================================================================
@@ -175,5 +173,4 @@ Feature: Claim history timeline — AMENDMENT event FSP repricing & escape-case 
     When I request the claim history timeline
     Then the AMENDMENT event for amendment A has "pricing_recalculated" true, "price_changed" false, and "escape_case_logged" absent or false
     And the AMENDMENT event for amendment B has "pricing_recalculated" true, "price_changed" true, and "escape_case_logged" true
-
 

@@ -15,8 +15,6 @@ Feature: Amendment request contract — claim_version JSON integer validation
   #               Final OCC guard → amendmentsFinalSaveGuard.feature;
   #               Envelope shape (DSTEW-1754).
 
-  Background:
-
   @DS1751_1
   Scenario Outline: Boundary — integer claim_version <case> is accepted at the contract layer
     Given an original claim exists at version <storedVersion>
@@ -67,4 +65,3 @@ Feature: Amendment request contract — claim_version JSON integer validation
     And no outbound PDA call was made
     And no outbound FSP call was made from the request-contract path
     And no claim_amendment record was inserted for the request-contract claim by this attempt
-
