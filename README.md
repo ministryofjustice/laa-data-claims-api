@@ -43,6 +43,27 @@ This API uses the shared CSV export starter:
 
 `./gradlew integrationTest`
 
+### Run BDD tests
+
+The BDD (Cucumber) suite runs in-process against the embedded application with
+Testcontainers (Postgres + MockServer), so Docker must be running. Scenarios are
+split into two tagged packs:
+
+| Tag | Contents | Where it runs in CI |
+|---|---|---|
+| `@Regression` | E2E happy-path pack (max 20% of the suite) | UAT gate — PR UAT preview (`deploy-uat-preview.yml`) and `bdd-test` → `deploy-uat` on `main` |
+| `@Full_Regression` | Every BDD scenario | Staging gate — `bdd-full-regression` → `deploy-staging` on `main` |
+
+```zsh
+./gradlew :claims-data:service:bddTest -Dcucumber.filter.tags='@Regression'
+./gradlew :claims-data:service:bddTest -Dcucumber.filter.tags='@Full_Regression'
+```
+
+Every feature carries `@Full_Regression` at feature level; only add `@Regression`
+to a new scenario if it is a key E2E happy path and the pack stays within the 20%
+cap. See [docs/bdd-behave-tags-guide.md](docs/bdd-behave-tags-guide.md) for more
+tag-filtering examples.
+
 ### Run application (after first starting local postgres container)
 `cd claims-data`
 `docker compose up -d`
