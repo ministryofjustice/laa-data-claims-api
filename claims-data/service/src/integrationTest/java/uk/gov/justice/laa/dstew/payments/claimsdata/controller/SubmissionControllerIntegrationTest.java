@@ -35,6 +35,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -1528,6 +1529,91 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
     assertThat(submissionBase.getSubmissionId()).isEqualTo(SUBMISSION_1_ID);
     assertThat(submissionBase.getStatus()).isEqualTo(SubmissionStatus.CREATED);
     assertThat(submissionBase.getProviderUserId()).isEqualTo(BULK_SUBMISSION_CREATED_BY_USER_ID);
+  }
+
+  @Test
+  @DisplayName("GET submission detail returns approval values when present")
+  void getSubmissionDetailReturnsApprovalValues() throws Exception {
+    String officeAccountNumber = "1234";
+    Instant approvedOn = Instant.parse("2026-01-01T09:00:00Z");
+    Submission approved =
+        pendingApprovalSubmission(
+                Uuid7.timeBasedUuid(), officeAccountNumber, SubmissionStatus.VALIDATION_SUCCEEDED)
+            .submissionPeriod("JAN-2026")
+            .approvedOn(approvedOn)
+            .approvedByUserId("approval-user")
+            .build();
+    Submission unapproved =
+        pendingApprovalSubmission(
+                Uuid7.timeBasedUuid(), officeAccountNumber, SubmissionStatus.CREATED)
+            .submissionPeriod("FEB-2026")
+            .build();
+    submissionRepository.saveAllAndFlush(List.of(approved, unapproved));
+
+    MvcResult approvedDetailResult =
+        mockMvc
+            .perform(
+                get(SUBMISSION_BY_ID_ENDPOINT, approved.getId())
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+    SubmissionResponse approvedDetail =
+        OBJECT_MAPPER.readValue(
+            approvedDetailResult.getResponse().getContentAsString(), SubmissionResponse.class);
+    assertThat(approvedDetail.getApprovedOn().toInstant()).isEqualTo(approvedOn);
+    assertThat(approvedDetail.getApprovedByUserId()).isEqualTo("approval-user");
+
+    MvcResult unapprovedDetailResult =
+        mockMvc
+            .perform(
+                get(SUBMISSION_BY_ID_ENDPOINT, unapproved.getId())
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+    SubmissionResponse unapprovedDetail =
+        OBJECT_MAPPER.readValue(
+            unapprovedDetailResult.getResponse().getContentAsString(), SubmissionResponse.class);
+    assertThat(unapprovedDetail.getApprovedOn()).isNull();
+    assertThat(unapprovedDetail.getApprovedByUserId()).isNull();
+  }
+
+  @Test
+  @DisplayName("GET submissions list returns approval values when present")
+  void getSubmissionsListReturnsApprovalValues() throws Exception {
+    String officeAccountNumber = "1234";
+    Instant approvedOn = Instant.parse("2026-01-01T09:00:00Z");
+    Submission approved =
+        pendingApprovalSubmission(
+                Uuid7.timeBasedUuid(), officeAccountNumber, SubmissionStatus.VALIDATION_SUCCEEDED)
+            .submissionPeriod("JAN-2026")
+            .approvedOn(approvedOn)
+            .approvedByUserId("approval-user")
+            .build();
+    Submission unapproved =
+        pendingApprovalSubmission(
+                Uuid7.timeBasedUuid(), officeAccountNumber, SubmissionStatus.CREATED)
+            .submissionPeriod("FEB-2026")
+            .build();
+    submissionRepository.saveAllAndFlush(List.of(approved, unapproved));
+
+    MvcResult listResult =
+        mockMvc
+            .perform(
+                get(SUBMISSIONS_ENDPOINT)
+                    .param(PARAM_OFFICES, officeAccountNumber)
+                    .param(PARAM_SORT, "submissionPeriod,asc")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+    List<SubmissionBase> submissions =
+        OBJECT_MAPPER.readValue(
+                listResult.getResponse().getContentAsString(), SubmissionsResultSet.class)
+            .getContent();
+    assertThat(submissions).hasSize(2);
+    assertThat(Objects.requireNonNull(submissions.getFirst().getApprovedOn()).toInstant()).isEqualTo(approvedOn);
+    assertThat(submissions.getFirst().getApprovedByUserId()).isEqualTo("approval-user");
+    assertThat(submissions.get(1).getApprovedOn()).isNull();
+    assertThat(submissions.get(1).getApprovedByUserId()).isNull();
   }
 
   @Test
