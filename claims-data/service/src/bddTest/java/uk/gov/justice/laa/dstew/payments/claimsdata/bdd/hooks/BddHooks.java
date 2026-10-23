@@ -61,9 +61,10 @@ public class BddHooks {
     context.clear();
     submissionPeriodHelper.reset();
 
-    // Reset amendments feature flag to null (not configured) — each scenario explicitly
-    // configures it as needed. This ensures independent scenario isolation.
+    // Reset feature flags to null (not configured) so each scenario explicitly configures
+    // them as needed and remains isolated.
     claimsApiProperties.getAmendments().setEnabled(null);
+    claimsApiProperties.getFeatures().setValidatedPendingApproval(null);
 
     validationMessageLogRepository.deleteAll();
     assessmentRepository.deleteAll();
