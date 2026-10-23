@@ -39,7 +39,7 @@ public class ClaimsApiProperties {
     }
   }
 
-  /** Settings for the amendments feature ({@code laa.claims.api.amendments.*}). */
+  /** Cache settings for amendment reference data ({@code laa.claims.api.amendments.cache.*}). */
   private final Amendments amendments = new Amendments();
 
   /** Settings for the inquests feature ({@code laa.claims.api.inquests.*}). */
@@ -69,38 +69,12 @@ public class ClaimsApiProperties {
     }
   }
 
-  /** Settings for the amendments feature. */
+  /** Settings for the amendment reference-data cache. */
   @Getter
-  @Setter
   public static class Amendments {
-
-    /**
-     * Raw configured value for the amendments toggle ({@code laa.claims.api.amendments.enabled}).
-     *
-     * <p><b>Off by default.</b> Bound as a {@link String} (not a {@code boolean}) so the feature
-     * fails safe to off: it is enabled only when this resolves to {@code true} via {@link
-     * #isEnabled()}. An absent/null, blank, {@code false} or otherwise invalid value leaves the
-     * feature off without failing application start-up. Prefer {@link #isEnabled()} over reading
-     * this field directly.
-     */
-    private String enabled;
 
     /** Caching settings for the governed amendment reference data. */
     private final Cache cache = new Cache();
-
-    /**
-     * Whether the amendments capability is enabled, resolving the raw {@link #enabled} value
-     * fail-safe to off.
-     *
-     * <p>Returns {@code true} only when the configured value is {@code "true"} (case-insensitive,
-     * ignoring surrounding whitespace); every other value - absent/null, blank, {@code "false"} or
-     * any unrecognised value - returns {@code false}.
-     *
-     * @return {@code true} only when amendments are explicitly enabled
-     */
-    public boolean isEnabled() {
-      return enabled != null && Boolean.parseBoolean(enabled.trim());
-    }
 
     /** Caching settings for the governed amendment reference data. */
     @Getter

@@ -28,12 +28,11 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
  * (DSTEW-1646, child DSTEW-1773).
  *
  * <p>These drive the real {@code PATCH /api/v1/submissions/{submissionId}/claims/{claimId}}
- * endpoint with the amendments feature flag enabled, so the genuine amendment chain runs: prepare
- * {@literal ->} validate (including {@code AmendmentExternalValidationStep}, which delegates to the
- * shared claims-validation-core {@code ValidationService} that owns the PDA cache and the outbound
- * {@code getProviderFirmSchedules} HTTP call). The outbound call is stubbed via {@link
- * MockServerIntegrationTest}, so the tests assert the ticket's behaviour purely by observing the
- * MockServer interactions:
+ * endpoint through the genuine amendment chain: prepare {@literal ->} validate (including {@code
+ * AmendmentExternalValidationStep}, which delegates to the shared claims-validation-core {@code
+ * ValidationService} that owns the PDA cache and the outbound {@code getProviderFirmSchedules} HTTP
+ * call). The outbound call is stubbed via {@link MockServerIntegrationTest}, so the tests assert
+ * the ticket's behaviour purely by observing the MockServer interactions:
  *
  * <ul>
  *   <li><b>Cache hit</b> - two PDA-relevant amendments resolving to the same {@code officeCode +

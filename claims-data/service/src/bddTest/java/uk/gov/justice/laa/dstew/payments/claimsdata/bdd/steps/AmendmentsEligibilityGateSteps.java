@@ -107,7 +107,6 @@ public class AmendmentsEligibilityGateSteps {
   // ---------------------------------------------------------------------------
   // Shared / borrowed step definitions:
   //
-  //   "the amendments feature flag is enabled"                 (AmendmentsFeatureFlagSteps)
   //   "the amendment metadata reference-data source is available"
   //                                                            (AmendmentMetadataValidationSteps)
   //   "I submit the amendment and wait for the event service to complete amendment validation"

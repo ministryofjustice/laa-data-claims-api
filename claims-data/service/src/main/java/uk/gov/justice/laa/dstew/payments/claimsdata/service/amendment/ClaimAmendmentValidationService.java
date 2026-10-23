@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentState;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.ClaimAmendmentValidationError;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentExternalValidationStep;
-import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFeatureFlagValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentFspValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentNoChangeValidationStep;
 import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation.AmendmentReferenceValidationStep;
@@ -62,9 +61,6 @@ public class ClaimAmendmentValidationService {
   /** Canonical amendment validation order; each step runs in the position declared here. */
   static final List<Class<? extends ClaimAmendmentValidationStep>> STEP_ORDER =
       List.of(
-          // Feature-flag gate runs first so a disabled feature short-circuits the pipeline before
-          // any other work is done.
-          AmendmentFeatureFlagValidationStep.class,
           BeforeStatePresenceValidationStep.class,
           ClaimVersionValidationStep.class,
           AmendmentNoChangeValidationStep.class,
