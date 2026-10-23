@@ -67,9 +67,7 @@ public class ClaimAmendmentState {
   /** The validation errors collected so far as the amendment validation steps run. */
   @Builder.Default private final List<ClaimAmendmentValidationError> errors = new ArrayList<>();
 
-  /**
-   * Warning-severity validation issues captured during external validation for commit-time write.
-   */
+  /** Warning-severity issues from validation-core and FSP repricing for commit-time write. */
   @Builder.Default private final List<ValidationIssue> fspWarnings = new ArrayList<>();
 
   /**
@@ -82,9 +80,9 @@ public class ClaimAmendmentState {
   }
 
   /**
-   * Adds warning-severity issues discovered by the external validation step.
+   * Adds warning-severity issues discovered during validation or FSP repricing.
    *
-   * @param newWarnings warning issues returned by validation-core; may be empty
+   * @param newWarnings warning issues to persist; may be empty
    */
   public void addWarnings(List<ValidationIssue> newWarnings) {
     fspWarnings.addAll(newWarnings);
