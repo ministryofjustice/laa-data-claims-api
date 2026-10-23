@@ -14,6 +14,10 @@ inputs:
     description: "Name of the uploaded reports artifact"
     required: false
     default: "bdd-reports"
+  tags:
+    description: "Cucumber tag expression to run (e.g. '@Regression' or '@Full_Regression'). Empty runs every scenario."
+    required: false
+    default: ""
 
 runs:
   using: "composite"
@@ -32,7 +36,13 @@ runs:
       env:
         GITHUB_ACTOR: ${{ github.actor }}
         GITHUB_TOKEN: ${{ github.token }}
-      run: ./gradlew :claims-data:service:bddTest --no-daemon
+        BDD_TAGS: ${{ inputs.tags }}
+      run: |
+        if [ -n "$BDD_TAGS" ]; then
+          ./gradlew :claims-data:service:bddTest --no-daemon "-Dcucumber.filter.tags=$BDD_TAGS"
+        else
+          ./gradlew :claims-data:service:bddTest --no-daemon
+        fi
 
     - name: Upload BDD reports
       if: always()

@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @amendments
 @dstew-harness-canary
 Feature: Amendment BDD harness canary
@@ -13,6 +13,7 @@ Feature: Amendment BDD harness canary
   #
   # Do NOT tag this to any DSTEW-1xxx story number.
 
+  @HC_1 @Regression
   Scenario: Non-pricing amendment on a fresh valid claim returns 2xx and inserts one amendment row
     Given a fresh amendable claim on a legal-help submission at version 0
     And the PDA service will respond "authorised" within the amendment-path timeout

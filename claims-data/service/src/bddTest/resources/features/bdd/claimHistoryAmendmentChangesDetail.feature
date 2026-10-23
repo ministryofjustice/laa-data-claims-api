@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @claimHistory
 @amendments
 @dstew-1814
@@ -53,7 +53,7 @@ Feature: Claim history timeline — AMENDMENT event field-level change detail
   #   * Display formatting (dates, currency) → AaBC UI
   #   * Envelope / actor fallback → DSTEW-1811
 
-  @smoke @DS1814_1
+  @smoke @DS1814_1 @Regression
   Scenario: Single-field Requested change is rendered with all four detail fields
     Given a claim exists with a successful `claim_amendment` row whose stored diff (schema_version=1) contains
       | field_identifier | before_present | before_value | after_present | after_value | change_source |

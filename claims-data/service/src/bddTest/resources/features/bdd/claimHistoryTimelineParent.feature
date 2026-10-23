@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @claimHistory
 @dstew-1645
 Feature: Claim history timeline — parent-level cross-cutting guarantees
@@ -40,7 +40,7 @@ Feature: Claim history timeline — parent-level cross-cutting guarantees
   #   * Pact / consumer contract              → contractTest module, NOT Cucumber
   #   * Display names / label lookups         → AaBC UI concern, out of Claims API
 
-  @smoke @DS1645_1
+  @smoke @DS1645_1 @Regression
   Scenario: Mixed timeline — submission, amendments, assessment and void appear in the agreed order
     Given a claim exists with the following lifecycle events in order
       | event      | occurredAt           |
@@ -85,7 +85,7 @@ Feature: Claim history timeline — parent-level cross-cutting guarantees
     And the AMENDMENT event does not contain the full before-state snapshot
     And only per-field before/after values from the versioned diff are exposed
 
-  @DS1645_5
+  @DS1645_5 @Regression
   Scenario: Submission-only / minimal history — a fresh claim returns only its SUBMISSION event
     Given a claim exists that has been submitted but never amended, assessed or voided
     When I request the claim history timeline

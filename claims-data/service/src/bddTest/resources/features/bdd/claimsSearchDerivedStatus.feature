@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @claims
 @readSide
 @dstew-1948
@@ -61,7 +61,7 @@ Feature: Claims search — derived claim status field and sort
   Background:
     Given the v2 claims search endpoint is available
 
-  @smoke @DS1948_1
+  @smoke @DS1948_1 @Regression
   Scenario Outline: Derivation truth table — each claim resolves to exactly one derived status by fixed precedence
     Given a claim exists with claim_status "<claim_status>", has_assessment <has_assessment> and is_amended <is_amended>
     When I search claims
