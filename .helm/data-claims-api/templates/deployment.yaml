@@ -184,7 +184,10 @@ spec:
             # Under the fixed container memory limit the metaspace reservation comes out of heap;
             # revisit if heap pressure appears.
             - name: JAVA_TOOL_OPTIONS
-              value: "-XX:MaxMetaspaceSize=224m"
+              value: >-
+                -XX:MaxMetaspaceSize=224m
+                -Dcom.sun.net.ssl.checkRevocation=true
+                -Dcom.sun.security.enableCRLDP=true
             - name: SPRING_PROFILES_ACTIVE
               value: {{ .Values.spring.profile | quote }}
             - name: AWS_REGION
