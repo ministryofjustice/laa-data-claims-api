@@ -40,9 +40,6 @@ Feature: Claim history timeline — parent-level cross-cutting guarantees
   #   * Pact / consumer contract              → contractTest module, NOT Cucumber
   #   * Display names / label lookups         → AaBC UI concern, out of Claims API
 
-  Background:
-    Given the amendments feature flag is enabled
-
   @smoke @DS1645_1
   Scenario: Mixed timeline — submission, amendments, assessment and void appear in the agreed order
     Given a claim exists with the following lifecycle events in order
@@ -119,4 +116,3 @@ Feature: Claim history timeline — parent-level cross-cutting guarantees
   #  And I then request the claim history timeline
   #  Then the response contains an AMENDMENT event whose source_id equals the persisted claim_amendment.id
   #  And the AMENDMENT event was derived from persisted source data, not seeded history rows
-

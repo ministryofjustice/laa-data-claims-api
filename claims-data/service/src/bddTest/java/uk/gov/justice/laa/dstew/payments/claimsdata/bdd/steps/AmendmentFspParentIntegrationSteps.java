@@ -24,8 +24,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistenc
  * <ul>
  *   <li>seeding + pricing submit + no-write DB assertions → {@code AmendmentHarnessCommonSteps}
  *       (DSTEW-2301),
- *   <li>Background feature-flag / PDA-trigger / PDA-response → {@code AmendmentsFeatureFlagSteps} /
- *       {@code AmendmentPdaCallMechanicsSteps} / {@code AmendmentHarnessCommonSteps},
+ *   <li>Background PDA-trigger / PDA-response → {@code AmendmentPdaCallMechanicsSteps} / {@code
+ *       AmendmentHarnessCommonSteps},
  *   <li>controlled-terminal-failure + no-partial-fields spec-guards → {@code
  *       AmendmentPdaParentIntegrationSteps} (DSTEW-1646 precedent),
  *   <li>assessed-claim provisioning + classifier + error-code assertion (DS1595_2) → {@code

@@ -113,13 +113,11 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   private static final String DEPARTMENT1 = DEPARTMENT_MINISTRY_OF_JUSTICE;
   private static final String DEPARTMENT2 = DEPARTMENT_HEALTH_AND_SOCIAL_CARE;
 
-  private Boolean amendmentSwitch;
   private Boolean inquestsSwitch;
 
   @BeforeEach
   void setUp() {
     // Capture the original boolean state
-    amendmentSwitch = claimsApiProperties.getAmendments().isEnabled();
     inquestsSwitch = claimsApiProperties.getInquests().isEnabled();
     seedClaimsData();
   }
@@ -127,7 +125,6 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @AfterEach
   void tearDown() {
     // Use String.valueOf() for a null-safe string conversion
-    claimsApiProperties.getAmendments().setEnabled(String.valueOf(amendmentSwitch));
     claimsApiProperties.getInquests().setEnabled(String.valueOf(inquestsSwitch));
   }
 
@@ -1045,7 +1042,6 @@ public class ClaimControllerIntegrationTest extends AbstractIntegrationTest {
   @DisplayName(
       "PATCH v1/submissions/{submissionId}/claims/{claimId} - 400 when attempting invalid void update")
   void shouldReturnBadRequestWhenClaimPatchIsCalledToVoidAClaim() throws Exception {
-    claimsApiProperties.getAmendments().setEnabled("false");
     // given: required claims exist in the database
     ClaimPatch claimPatch = new ClaimPatch();
     claimPatch.setStatus(ClaimStatus.VOID);

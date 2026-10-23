@@ -12,9 +12,6 @@ Feature: Amendment FSP repricing over real HTTP (MockServer)
   # nothing-persisted outcome. This closes the coverage gap flagged on PR #475: without a pricing
   # scenario, the migrated client was never exercised over HTTP.
 
-  Background:
-    Given the amendments feature flag is enabled
-
   Scenario: Pricing amendment triggers a real FSP fee-calculation call and is accepted
     Given a fresh amendable claim on a legal-help submission at version 0
     And the PDA service will respond "authorised" within the amendment-path timeout
@@ -31,5 +28,4 @@ Feature: Amendment FSP repricing over real HTTP (MockServer)
     Then the amendment is rejected with HTTP 503 and amendment error code "TECHNICAL_ERROR_FSP_REPRICING_FAILURE"
     And exactly 1 outbound FSP call was made
     And no claim_amendment record was inserted for this claim by this attempt
-
 

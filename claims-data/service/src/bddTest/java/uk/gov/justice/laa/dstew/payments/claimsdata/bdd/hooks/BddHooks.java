@@ -63,7 +63,6 @@ public class BddHooks {
 
     // Reset feature flags to null (not configured) so each scenario explicitly configures
     // them as needed and remains isolated.
-    claimsApiProperties.getAmendments().setEnabled(null);
     claimsApiProperties.getFeatures().setValidatedPendingApproval(null);
 
     validationMessageLogRepository.deleteAll();
