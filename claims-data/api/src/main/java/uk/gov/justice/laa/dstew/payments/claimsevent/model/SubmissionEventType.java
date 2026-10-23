@@ -3,6 +3,7 @@ package uk.gov.justice.laa.dstew.payments.claimsevent.model;
 public enum SubmissionEventType {
   PARSE_BULK_SUBMISSION,
   VALIDATE_SUBMISSION,
+  APPROVE_SUBMISSION,
   SUBMISSION_VALIDATION_SUCCEEDED,
   INITIAL_SUBMISSION_VALIDATION_SUCCEEDED
 }

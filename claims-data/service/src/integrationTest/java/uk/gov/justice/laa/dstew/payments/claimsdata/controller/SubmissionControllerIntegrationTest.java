@@ -22,6 +22,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.util.ClaimsDataTestUt
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.persistence.EntityManager;
@@ -34,11 +35,13 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,10 +55,13 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sns.model.CreateTopicRequest;
 import software.amazon.awssdk.services.sns.model.SubscribeRequest;
@@ -105,6 +111,10 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   @Autowired private SnsClient snsClient;
 
   @Autowired private EntityManager entityManager;
+
+  @Autowired private PlatformTransactionManager transactionManager;
+
+  @Autowired private JdbcTemplate jdbcTemplate;
 
   @Value("${aws.sqs.queue-name}")
   private String queueName;
@@ -1530,6 +1540,92 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
   }
 
   @Test
+  @DisplayName("GET submission detail returns approval values when present")
+  void getSubmissionDetailReturnsApprovalValues() throws Exception {
+    String officeAccountNumber = "1234";
+    Instant approvedOn = Instant.parse("2026-01-01T09:00:00Z");
+    Submission approved =
+        pendingApprovalSubmission(
+                Uuid7.timeBasedUuid(), officeAccountNumber, SubmissionStatus.VALIDATION_SUCCEEDED)
+            .submissionPeriod("JAN-2026")
+            .approvedOn(approvedOn)
+            .approvedByUserId("approval-user")
+            .build();
+    Submission unapproved =
+        pendingApprovalSubmission(
+                Uuid7.timeBasedUuid(), officeAccountNumber, SubmissionStatus.CREATED)
+            .submissionPeriod("FEB-2026")
+            .build();
+    submissionRepository.saveAllAndFlush(List.of(approved, unapproved));
+
+    MvcResult approvedDetailResult =
+        mockMvc
+            .perform(
+                get(SUBMISSION_BY_ID_ENDPOINT, approved.getId())
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+    SubmissionResponse approvedDetail =
+        OBJECT_MAPPER.readValue(
+            approvedDetailResult.getResponse().getContentAsString(), SubmissionResponse.class);
+    assertThat(approvedDetail.getApprovedOn().toInstant()).isEqualTo(approvedOn);
+    assertThat(approvedDetail.getApprovedByUserId()).isEqualTo("approval-user");
+
+    MvcResult unapprovedDetailResult =
+        mockMvc
+            .perform(
+                get(SUBMISSION_BY_ID_ENDPOINT, unapproved.getId())
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+    SubmissionResponse unapprovedDetail =
+        OBJECT_MAPPER.readValue(
+            unapprovedDetailResult.getResponse().getContentAsString(), SubmissionResponse.class);
+    assertThat(unapprovedDetail.getApprovedOn()).isNull();
+    assertThat(unapprovedDetail.getApprovedByUserId()).isNull();
+  }
+
+  @Test
+  @DisplayName("GET submissions list returns approval values when present")
+  void getSubmissionsListReturnsApprovalValues() throws Exception {
+    String officeAccountNumber = "1234";
+    Instant approvedOn = Instant.parse("2026-01-01T09:00:00Z");
+    Submission approved =
+        pendingApprovalSubmission(
+                Uuid7.timeBasedUuid(), officeAccountNumber, SubmissionStatus.VALIDATION_SUCCEEDED)
+            .submissionPeriod("JAN-2026")
+            .approvedOn(approvedOn)
+            .approvedByUserId("approval-user")
+            .build();
+    Submission unapproved =
+        pendingApprovalSubmission(
+                Uuid7.timeBasedUuid(), officeAccountNumber, SubmissionStatus.CREATED)
+            .submissionPeriod("FEB-2026")
+            .build();
+    submissionRepository.saveAllAndFlush(List.of(approved, unapproved));
+
+    MvcResult listResult =
+        mockMvc
+            .perform(
+                get(SUBMISSIONS_ENDPOINT)
+                    .param(PARAM_OFFICES, officeAccountNumber)
+                    .param(PARAM_SORT, "submissionPeriod,asc")
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN))
+            .andExpect(status().isOk())
+            .andReturn();
+    List<SubmissionBase> submissions =
+        OBJECT_MAPPER
+            .readValue(listResult.getResponse().getContentAsString(), SubmissionsResultSet.class)
+            .getContent();
+    assertThat(submissions).hasSize(2);
+    assertThat(Objects.requireNonNull(submissions.getFirst().getApprovedOn()).toInstant())
+        .isEqualTo(approvedOn);
+    assertThat(submissions.getFirst().getApprovedByUserId()).isEqualTo("approval-user");
+    assertThat(submissions.get(1).getApprovedOn()).isNull();
+    assertThat(submissions.get(1).getApprovedByUserId()).isNull();
+  }
+
+  @Test
   @DisplayName("GET submissions without offices parameter returns Bad Request")
   void getSubmissionsNoOfficesBadRequest() throws Exception {
     // when: calling get all submissions endpoint without an office, should return bad request
@@ -1997,6 +2093,307 @@ public class SubmissionControllerIntegrationTest extends AbstractIntegrationTest
                 .stringValue())
         .isEqualTo(SubmissionEventType.INITIAL_SUBMISSION_VALIDATION_SUCCEEDED.toString());
     IntegrationTestUtils.deleteMessagesFromQueue(sqsClient, this.queueUrl, receiveResp);
+  }
+
+  private static Submission.SubmissionBuilder pendingApprovalSubmission(
+      UUID submissionId, String officeAccountNumber, SubmissionStatus status) {
+    return Submission.builder()
+        .id(submissionId)
+        .areaOfLaw(AreaOfLaw.CRIME_LOWER)
+        .officeAccountNumber(officeAccountNumber)
+        .submissionPeriod("APR-2025")
+        .createdByUserId(USER_ID)
+        .providerUserId(USER_ID)
+        .status(status)
+        .createdOn(CREATED_ON)
+        .updatedOn(CREATED_ON);
+  }
+
+  private static String finalValidationPatchBody(UUID submissionId, String officeAccountNumber)
+      throws JsonProcessingException {
+    return finalValidationPatchBody(submissionId, officeAccountNumber, USER_ID);
+  }
+
+  private static String finalValidationPatchBody(
+      UUID submissionId, String officeAccountNumber, String approvingUserId)
+      throws JsonProcessingException {
+    return OBJECT_MAPPER.writeValueAsString(
+        new SubmissionPatch()
+            .submissionId(submissionId)
+            .officeAccountNumber(officeAccountNumber)
+            .createdByUserId(approvingUserId)
+            .status(SubmissionStatus.READY_FOR_FINAL_VALIDATION));
+  }
+
+  @Test
+  @DisplayName("Patching a pending submission to ready for final validation publishes one event")
+  void patchSubmissionQueuesFinalValidationIdempotently() throws Exception {
+    UUID submissionId = Uuid7.timeBasedUuid();
+    submissionRepository.saveAndFlush(
+        pendingApprovalSubmission(
+                submissionId, "APPROVE-OFFICE", SubmissionStatus.VALIDATED_PENDING_APPROVAL)
+            .build());
+
+    mockMvc
+        .perform(
+            patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(finalValidationPatchBody(submissionId, "APPROVE-OFFICE")))
+        .andExpect(status().isNoContent());
+
+    mockMvc
+        .perform(
+            patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(finalValidationPatchBody(submissionId, "APPROVE-OFFICE")))
+        .andExpect(status().isNoContent());
+
+    Submission approved = submissionRepository.findById(submissionId).orElseThrow();
+    assertThat(approved.getStatus()).isEqualTo(SubmissionStatus.READY_FOR_FINAL_VALIDATION);
+    assertThat(approved.getUpdatedByUserId()).isEqualTo(USER_ID);
+    assertThat(approved.getApprovedByUserId()).isEqualTo(USER_ID);
+    assertThat(approved.getApprovedOn()).isNotNull();
+
+    List<Message> approvalEvents =
+        IntegrationTestUtils.drainMessagesOfType(
+            sqsClient, this.queueUrl, SubmissionEventType.APPROVE_SUBMISSION.toString());
+    assertThat(approvalEvents).hasSize(1);
+    assertThat(approvalEvents.getFirst().body()).contains(submissionId.toString());
+  }
+
+  @Test
+  @DisplayName("Patching final validation in any other status returns 400 and does not publish")
+  void patchFinalValidationRejectsIneligibleStatus() throws Exception {
+    UUID submissionId = Uuid7.timeBasedUuid();
+    submissionRepository.saveAndFlush(
+        pendingApprovalSubmission(
+                submissionId, "APPROVE-INVALID-OFFICE", SubmissionStatus.VALIDATION_SUCCEEDED)
+            .build());
+
+    mockMvc
+        .perform(
+            patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(finalValidationPatchBody(submissionId, "APPROVE-INVALID-OFFICE")))
+        .andExpect(status().isBadRequest());
+
+    Submission unchanged = submissionRepository.findById(submissionId).orElseThrow();
+    assertThat(unchanged.getStatus()).isEqualTo(SubmissionStatus.VALIDATION_SUCCEEDED);
+  }
+
+  @Test
+  @DisplayName("Patching final validation for another office returns 403 and changes nothing")
+  void patchFinalValidationRejectsMismatchedOffice() throws Exception {
+    UUID submissionId = Uuid7.timeBasedUuid();
+    submissionRepository.saveAndFlush(
+        pendingApprovalSubmission(
+                submissionId, "APPROVE-OWNING-OFFICE", SubmissionStatus.VALIDATED_PENDING_APPROVAL)
+            .build());
+
+    mockMvc
+        .perform(
+            patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(finalValidationPatchBody(submissionId, "APPROVE-OTHER-OFFICE")))
+        .andExpect(status().isForbidden());
+
+    Submission unchanged = submissionRepository.findById(submissionId).orElseThrow();
+    assertThat(unchanged.getStatus()).isEqualTo(SubmissionStatus.VALIDATED_PENDING_APPROVAL);
+    assertThat(unchanged.getOfficeAccountNumber()).isEqualTo("APPROVE-OWNING-OFFICE");
+  }
+
+  @Test
+  @DisplayName("Patching final validation without an approving user returns 400")
+  void patchFinalValidationRequiresApprovingUser() throws Exception {
+    UUID submissionId = Uuid7.timeBasedUuid();
+    submissionRepository.saveAndFlush(
+        pendingApprovalSubmission(
+                submissionId, "APPROVE-NO-USER", SubmissionStatus.VALIDATED_PENDING_APPROVAL)
+            .build());
+
+    mockMvc
+        .perform(
+            patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(finalValidationPatchBody(submissionId, "APPROVE-NO-USER", null)))
+        .andExpect(status().isBadRequest());
+
+    Submission unchanged = submissionRepository.findById(submissionId).orElseThrow();
+    assertThat(unchanged.getStatus()).isEqualTo(SubmissionStatus.VALIDATED_PENDING_APPROVAL);
+  }
+
+  @Test
+  @DisplayName("Patching final validation without an office account number returns 400")
+  void patchFinalValidationRequiresOffice() throws Exception {
+    UUID submissionId = Uuid7.timeBasedUuid();
+    submissionRepository.saveAndFlush(
+        pendingApprovalSubmission(
+                submissionId, "APPROVE-NO-OFFICE", SubmissionStatus.VALIDATED_PENDING_APPROVAL)
+            .build());
+
+    mockMvc
+        .perform(
+            patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(finalValidationPatchBody(submissionId, null)))
+        .andExpect(status().isBadRequest());
+
+    Submission unchanged = submissionRepository.findById(submissionId).orElseThrow();
+    assertThat(unchanged.getStatus()).isEqualTo(SubmissionStatus.VALIDATED_PENDING_APPROVAL);
+  }
+
+  @Test
+  @DisplayName("The event service can mark a queued submission as final validation in progress")
+  void patchMarksFinalValidationInProgress() throws Exception {
+    UUID submissionId = Uuid7.timeBasedUuid();
+    Instant approvedOn = Instant.parse("2026-01-01T09:00:00Z");
+    submissionRepository.saveAndFlush(
+        pendingApprovalSubmission(
+                submissionId, "APPROVE-IN-PROGRESS", SubmissionStatus.READY_FOR_FINAL_VALIDATION)
+            .approvedOn(approvedOn)
+            .approvedByUserId(USER_ID)
+            .build());
+
+    mockMvc
+        .perform(
+            patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(inProgressPatchBody(submissionId)))
+        .andExpect(status().isNoContent());
+
+    Submission updated = submissionRepository.findById(submissionId).orElseThrow();
+    assertThat(updated.getStatus()).isEqualTo(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS);
+    assertThat(updated.getApprovedOn()).isEqualTo(approvedOn);
+    assertThat(updated.getApprovedByUserId()).isEqualTo(USER_ID);
+  }
+
+  @Test
+  @DisplayName("Marking final validation in progress on a finished submission returns 400")
+  void patchRejectsFinalValidationInProgressForFinishedSubmission() throws Exception {
+    UUID submissionId = Uuid7.timeBasedUuid();
+    submissionRepository.saveAndFlush(
+        pendingApprovalSubmission(
+                submissionId, "APPROVE-FINISHED", SubmissionStatus.VALIDATION_SUCCEEDED)
+            .build());
+
+    mockMvc
+        .perform(
+            patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(inProgressPatchBody(submissionId)))
+        .andExpect(status().isBadRequest());
+
+    Submission unchanged = submissionRepository.findById(submissionId).orElseThrow();
+    assertThat(unchanged.getStatus()).isEqualTo(SubmissionStatus.VALIDATION_SUCCEEDED);
+  }
+
+  @Test
+  @DisplayName("Concurrent metadata patch preserves approval status and audit fields")
+  void concurrentMetadataPatchPreservesApproval() throws Exception {
+    UUID submissionId = Uuid7.timeBasedUuid();
+    String officeAccountNumber = "1234";
+    submissionRepository.saveAndFlush(
+        pendingApprovalSubmission(
+                submissionId, officeAccountNumber, SubmissionStatus.VALIDATED_PENDING_APPROVAL)
+            .build());
+
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    try {
+      Future<Integer> metadataPatch =
+          new TransactionTemplate(transactionManager)
+              .execute(
+                  transactionStatus -> {
+                    Integer approvalTransactionPid =
+                        jdbcTemplate.queryForObject("SELECT pg_backend_pid()", Integer.class);
+                    try {
+                      mockMvc
+                          .perform(
+                              patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
+                                  .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                                  .contentType(MediaType.APPLICATION_JSON)
+                                  .content(
+                                      finalValidationPatchBody(submissionId, officeAccountNumber)))
+                          .andExpect(status().isNoContent());
+                    } catch (Exception exception) {
+                      throw new IllegalStateException("Unable to approve submission", exception);
+                    }
+
+                    Future<Integer> request =
+                        executor.submit(
+                            () ->
+                                mockMvc
+                                    .perform(
+                                        patch(SUBMISSION_BY_ID_ENDPOINT, submissionId)
+                                            .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                                            .contentType(MediaType.APPLICATION_JSON)
+                                            .content(
+                                                OBJECT_MAPPER.writeValueAsString(
+                                                    new SubmissionPatch()
+                                                        .crimeLowerScheduleNumber("crime-123"))))
+                                    .andReturn()
+                                    .getResponse()
+                                    .getStatus());
+                    awaitSubmissionLockWaiter(approvalTransactionPid);
+                    return request;
+                  });
+
+      assertThat(metadataPatch).isNotNull();
+      assertThat(metadataPatch.get(10, TimeUnit.SECONDS)).isEqualTo(204);
+
+      Submission updated = submissionRepository.findById(submissionId).orElseThrow();
+      assertThat(updated.getStatus()).isEqualTo(SubmissionStatus.READY_FOR_FINAL_VALIDATION);
+      assertThat(updated.getApprovedByUserId()).isEqualTo(USER_ID);
+      assertThat(updated.getApprovedOn()).isNotNull();
+      assertThat(updated.getCrimeLowerScheduleNumber()).isEqualTo("crime-123");
+
+      List<Message> approvalEvents =
+          IntegrationTestUtils.drainMessagesOfType(
+              sqsClient, queueUrl, SubmissionEventType.APPROVE_SUBMISSION.toString());
+      assertThat(approvalEvents).hasSize(1);
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  private void awaitSubmissionLockWaiter(Integer blockingPid) {
+    // Wait until postgres confirms the metadata PATCH is blocked.
+    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+    while (System.nanoTime() < deadline) {
+      Boolean lockWaiterPresent =
+          jdbcTemplate.queryForObject(
+              "SELECT EXISTS (SELECT 1 FROM pg_stat_activity AS waiter "
+                  + "WHERE wait_event_type = 'Lock' "
+                  + "AND datname = current_database() "
+                  + "AND ? = ANY(pg_blocking_pids(waiter.pid)))",
+              Boolean.class,
+              blockingPid);
+      if (Boolean.TRUE.equals(lockWaiterPresent)) {
+        return;
+      }
+      try {
+        Thread.sleep(10);
+      } catch (InterruptedException exception) {
+        Thread.currentThread().interrupt();
+        throw new IllegalStateException(
+            "Interrupted while waiting for metadata PATCH to block", exception);
+      }
+    }
+    throw new AssertionError("Metadata PATCH did not wait for approval transaction " + blockingPid);
+  }
+
+  private static String inProgressPatchBody(UUID submissionId) throws JsonProcessingException {
+    return OBJECT_MAPPER.writeValueAsString(
+        new SubmissionPatch()
+            .submissionId(submissionId)
+            .status(SubmissionStatus.FINAL_VALIDATION_IN_PROGRESS));
   }
 
   @Test
