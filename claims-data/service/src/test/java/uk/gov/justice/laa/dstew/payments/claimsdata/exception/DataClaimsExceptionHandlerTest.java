@@ -333,6 +333,32 @@ class DataClaimsExceptionHandlerTest {
 
   @Test
   @DisplayName(
+      "ClaimConflictException (early version-match gate for void/assessment) maps to a lean 409 "
+          + "body with a scalar 'code' property and no amendment-shaped 'errors' array")
+  void handleClaimConflictException_returnsLeanBodyWithoutErrorsArray() {
+    ClaimConflictException ex =
+        new ClaimConflictException("provided version does not match claim version for id: X");
+
+    ResponseEntity<ProblemDetail> result =
+        dataClaimsExceptionHandler.handleClaimConflictException(ex, mockRequest);
+
+    assertThat(result).isNotNull();
+    assertThat(result.getStatusCode()).isEqualTo(CONFLICT);
+    assertThat(result.getBody()).isNotNull();
+    assertThat(result.getBody().getStatus()).isEqualTo(CONFLICT.value());
+    assertThat(result.getBody().getTitle()).isEqualTo("Conflict");
+    assertThat(result.getBody().getDetail()).isEqualTo(EXPECTED_CONFLICT_MESSAGE);
+    assertThat(result.getBody().getInstance()).hasToString(TEST_REQUEST_URI);
+    // Lean, non-amendment envelope: a scalar 'code' property...
+    assertThat(result.getBody().getProperties())
+        .containsEntry("code", ClaimAmendmentValidationCode.CLAIM_VERSION_CONFLICT.name());
+    // ...and deliberately NOT the amendment-shaped 'errors' array (reserved for flows that can
+    // genuinely produce a heterogeneous collection of validation errors).
+    assertThat(result.getBody().getProperties()).doesNotContainKey("errors");
+  }
+
+  @Test
+  @DisplayName(
       "Spring's ObjectOptimisticLockingFailureException maps to a 409 Conflict Problem Detail")
   void handleOptimisticLockingFailure_returnsConflict() {
     ObjectOptimisticLockingFailureException ex =
