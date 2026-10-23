@@ -26,7 +26,7 @@ Feature: Amendment metadata — submit-time validation (Requested By / Amendment
 
   @smoke @DS1765_1
   Scenario: Valid metadata does not raise any metadata validation error
-    And the amendment metadata reference-data source is available
+    Given the amendment metadata reference-data source is available
     And an amendment with metadata
       | requestedByCode | amendmentReasonCode | submittingUserId                     |
       | RB_PROVIDER     | AR_FEE_CORR         | 8f14e45f-ceea-467a-b3c0-38f89b0e07a1 |
@@ -36,7 +36,7 @@ Feature: Amendment metadata — submit-time validation (Requested By / Amendment
 
   @DS1765_2
   Scenario Outline: Requested By <case> is rejected with <expectedCode>
-    And the amendment metadata reference-data source is available
+    Given the amendment metadata reference-data source is available
     And an amendment with metadata
       | requestedByCode   | amendmentReasonCode | submittingUserId                     |
       | <requestedByCode> | AR_FEE_CORR         | 8f14e45f-ceea-467a-b3c0-38f89b0e07a1 |
@@ -55,7 +55,7 @@ Feature: Amendment metadata — submit-time validation (Requested By / Amendment
 
   @DS1765_3
   Scenario Outline: Amendment Reason <case> is rejected with <expectedCode>
-    And the amendment metadata reference-data source is available
+    Given the amendment metadata reference-data source is available
     And an amendment with metadata
       | requestedByCode | amendmentReasonCode   | submittingUserId                     |
       | RB_PROVIDER     | <amendmentReasonCode> | 8f14e45f-ceea-467a-b3c0-38f89b0e07a1 |
@@ -74,7 +74,7 @@ Feature: Amendment metadata — submit-time validation (Requested By / Amendment
 
   @DS1765_4
   Scenario: Amendment Reason valid for one Requested By is rejected when paired with another Requested By
-    And the amendment metadata reference-data source is available
+    Given the amendment metadata reference-data source is available
     And an amendment with metadata
       | requestedByCode | amendmentReasonCode | submittingUserId                     |
       | RB_PROVIDER     | AR_CATEGORY_FIX     | 8f14e45f-ceea-467a-b3c0-38f89b0e07a1 |
@@ -86,7 +86,7 @@ Feature: Amendment metadata — submit-time validation (Requested By / Amendment
 
   @DS1765_5
   Scenario: Amendment Reason is accepted when paired with its valid Requested By
-    And the amendment metadata reference-data source is available
+    Given the amendment metadata reference-data source is available
     And an amendment with metadata
       | requestedByCode | amendmentReasonCode | submittingUserId                     |
       | RB_CASEWORKER   | AR_CATEGORY_FIX     | 8f14e45f-ceea-467a-b3c0-38f89b0e07a1 |
@@ -95,7 +95,7 @@ Feature: Amendment metadata — submit-time validation (Requested By / Amendment
 
   @DS1765_6
   Scenario Outline: Submitting user id "<userId>" is <result>
-    And the amendment metadata reference-data source is available
+    Given the amendment metadata reference-data source is available
     And an amendment with metadata
       | requestedByCode | amendmentReasonCode | submittingUserId |
       | RB_PROVIDER     | AR_FEE_CORR         | <userId>         |
@@ -112,7 +112,7 @@ Feature: Amendment metadata — submit-time validation (Requested By / Amendment
 
   @DS1765_7
   Scenario: Multiple metadata errors are surfaced together in one Step 12 response
-    And the amendment metadata reference-data source is available
+    Given the amendment metadata reference-data source is available
     And an amendment with metadata
       | requestedByCode | amendmentReasonCode | submittingUserId |
       |                 |                     | not-a-uuid       |
@@ -127,7 +127,7 @@ Feature: Amendment metadata — submit-time validation (Requested By / Amendment
 
   @DS1765_8
   Scenario: Metadata validation does not perform display-name or current-user lookups
-    And the amendment metadata reference-data source is available
+    Given the amendment metadata reference-data source is available
     And an amendment with metadata
       | requestedByCode | amendmentReasonCode | submittingUserId                     |
       | RB_PROVIDER     | AR_FEE_CORR         | 8f14e45f-ceea-467a-b3c0-38f89b0e07a1 |
@@ -137,11 +137,10 @@ Feature: Amendment metadata — submit-time validation (Requested By / Amendment
 
   @DS1765_9
   Scenario: Reference data unavailable returns a controlled technical failure and no amendment is saved
-    And an amendment with metadata
+    Given an amendment with metadata
       | requestedByCode | amendmentReasonCode | submittingUserId                     |
       | RB_PROVIDER     | AR_FEE_CORR         | 8f14e45f-ceea-467a-b3c0-38f89b0e07a1 |
     And the amendment metadata reference-data source is unavailable
     When I submit the amendment and wait for the event service to complete amendment validation
     Then the endpoint responds with a controlled terminal failure "TECHNICAL_ERROR_AMENDMENT_METADATA_REFERENCE_DATA"
     And no amendment state was committed
-
