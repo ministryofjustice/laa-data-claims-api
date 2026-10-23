@@ -115,9 +115,6 @@ public class AmendmentsRequestContractSteps {
   // Background & Givens.
   // ---------------------------------------------------------------------------
 
-  // NOTE: "the amendments feature flag is enabled" is defined by AmendmentsFeatureFlagSteps and
-  // reused here via Cucumber's cross-class step registry — do NOT redefine it.
-
   @Given("an original claim exists at version {long}")
   @Transactional
   public void anOriginalClaimExistsAtVersion(Long storedVersion) {

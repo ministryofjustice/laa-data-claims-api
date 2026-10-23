@@ -28,8 +28,7 @@ Feature: Amendment eligibility gate — claim.status must be VALID
   # codes.
 
   Background:
-    Given the amendments feature flag is enabled
-    And the amendment metadata reference-data source is available
+    Given the amendment metadata reference-data source is available
 
   @smoke @DS1764_1
   Scenario: Eligible — claim.status "VALID" proceeds past the eligibility gate

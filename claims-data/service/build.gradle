@@ -51,6 +51,12 @@ jacocoTestCoverageVerification {
 // ext['dependency-name.version'] = 'x.x.x'
 
 // **** When adding new overrides please check if any existing overrides are now redundant (by removing them and adding them back only if required)
+dependencyManagement {
+    dependencies {
+        // Upgrade to fix the reported Snyk finding in hibernate-validator
+        dependency 'org.hibernate.validator:hibernate-validator:9.1.5.Final'
+    }
+}
 
 dependencies {
 

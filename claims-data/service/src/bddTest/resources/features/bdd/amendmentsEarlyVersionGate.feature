@@ -35,9 +35,6 @@ Feature: Amendment early version gate — pre-processing optimistic-concurrency 
   # asserting the TOTAL absence of a claim_amendment row for the claim proves no
   # amendment event could have been emitted either.
 
-  Background:
-    Given the amendments feature flag is enabled
-
   # AC1 — submitted version matches current claim.version → processing continues.
   @DS1752_1
   Scenario: Submitted version matches current claim.version — the amendment flow continues past the early gate
@@ -127,4 +124,3 @@ Feature: Amendment early version gate — pre-processing optimistic-concurrency 
     And the early-gate WARN log contains "currentClaimVersion=9"
     And the early-gate WARN log contains the current claim id
     And the early-gate WARN log does not carry any amendment payload field values
-

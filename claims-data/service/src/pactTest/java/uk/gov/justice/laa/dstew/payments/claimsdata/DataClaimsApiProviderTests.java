@@ -52,14 +52,12 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpRequest;
 import org.hibernate.exception.ConstraintViolationException;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestTemplate;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyManager;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -71,7 +69,6 @@ import org.springframework.test.context.ActiveProfiles;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ClaimValidationResult;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationIssue;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationSeverity;
-import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.AmendmentReasonReferenceEntity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
@@ -135,23 +132,10 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
 
   @LocalServerPort private int port;
 
-  @Autowired private ClaimsApiProperties claimsApiProperties;
-
-  private Boolean originalAmendmentState;
-
   @BeforeEach
   void setUp(PactVerificationContext context) {
     HttpTestTarget target = new HttpTestTarget("localhost", port);
     context.setTarget(target);
-
-    // 1. Capture the original state from the application context
-    originalAmendmentState = claimsApiProperties.getAmendments().isEnabled();
-  }
-
-  @AfterEach
-  void tearDown() {
-    // Safely restore the original state using String.valueOf()
-    claimsApiProperties.getAmendments().setEnabled(String.valueOf(originalAmendmentState));
   }
 
   @State("the system is ready to process a valid bulk submission")
@@ -240,7 +224,6 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   @State("the claim patch contains invalid data")
   public void theClaimPatchContainsInvalidData() {
     log.info("Setting up state: the claim patch contains invalid data");
-    claimsApiProperties.getAmendments().setEnabled("true");
     when(claimRepository.findByIdAndSubmissionId(any(), any()))
         .thenReturn(Optional.ofNullable(getClaim()));
     doThrow(new ClaimBadRequestException("Error found")).when(claimRepository).save(any());
@@ -250,8 +233,6 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   public void theClaimHasChangedSinceItWasLoaded() {
     log.info(
         "Setting up state: the claim has changed since it was loaded (stale amendment version)");
-    // Amendments must be enabled for the amendment flow - and its early version gate - to run.
-    claimsApiProperties.getAmendments().setEnabled("true");
     // The current stored claim carries a known version. A consumer contract exercising this state
     // submits a different (stale) version, which the early version gate rejects with a 409 Conflict
     // whose body carries the stable machine-readable code CLAIM_VERSION_CONFLICT.
@@ -264,7 +245,6 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   @State("the claim amendment fails field validation")
   public void theClaimAmendmentFailsFieldValidation() {
     log.info("Setting up state: the claim amendment fails field validation");
-    claimsApiProperties.getAmendments().setEnabled("true");
     Claim current = getClaim();
     current.setStatus(ClaimStatus.VALID);
     current.setVersion(1L);
@@ -505,6 +485,19 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
     when(assessmentRepository.save(any())).thenReturn(savedAssessment);
   }
 
+  @State("a claim that is already void exists")
+  public void aClaimThatIsAlreadyVoidExists() {
+    log.info("Setting up state: a claim that is already void exists");
+    Claim claim = getClaim();
+    claim.setStatus(ClaimStatus.VOID);
+    claim.setVersion(0L);
+    when(claimRepository.findById(any())).thenReturn(Optional.of(claim));
+    when(claimSummaryFeeRepository.existsById(any())).thenReturn(true);
+    when(claimSummaryFeeRepository.getReferenceById(any())).thenReturn(getClaimSummaryFee());
+    when(claimSummaryFeeRepository.findByClaimId(any()))
+        .thenReturn(Optional.of(getClaimSummaryFee()));
+  }
+
   @SneakyThrows
   @State("no data exists for the export")
   public void noDataExistsForTheExport() {
@@ -718,6 +711,23 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
                 .assessmentOutcome(AssessmentOutcome.PAID_IN_FULL)
                 .assessmentReason("Reason")
                 .assessmentType(AssessmentType.ESCAPE_CASE_ASSESSMENT)
+                .fixedFeeAmount(new BigDecimal("50.00"))
+                .netProfitCostsAmount(new BigDecimal("100.50"))
+                .netTravelCostsAmount(new BigDecimal("10.00"))
+                .netWaitingCostsAmount(new BigDecimal("11.00"))
+                .netCostOfCounselAmount(new BigDecimal("12.00"))
+                .disbursementAmount(new BigDecimal("13.00"))
+                .disbursementVatAmount(new BigDecimal("2.60"))
+                .detentionTravelAndWaitingCostsAmount(new BigDecimal("14.00"))
+                .jrFormFillingAmount(new BigDecimal("15.00"))
+                .boltOnAdjournedHearingFee(new BigDecimal("16.00"))
+                .boltOnCmrhOralFee(new BigDecimal("17.00"))
+                .boltOnCmrhTelephoneFee(new BigDecimal("18.00"))
+                .boltOnSubstantiveHearingFee(new BigDecimal("19.00"))
+                .boltOnHomeOfficeInterviewFee(new BigDecimal("21.00"))
+                .isVatApplicable(true)
+                .allowedTotalVat(new BigDecimal("20.10"))
+                .allowedTotalInclVat(new BigDecimal("120.60"))
                 .createdByUserId("User")
                 .createdOn(Instant.now())
                 .id(UUID.randomUUID())

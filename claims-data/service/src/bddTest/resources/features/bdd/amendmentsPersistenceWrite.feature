@@ -85,9 +85,6 @@ Feature: Amendment persistence — assemble & write the durable business record
   #   * Deep persistence properties (UUIDv7 byte-format, JSONB round-trip,
   #     sparse-payload preservation, FK integrity) → @DataJpaTest layer
 
-  Background:
-    Given the amendments feature flag is enabled
-
   @DS1907_1
   Scenario: Multi-amendment accumulation — each successful pricing amendment adds one attributed calc-fee row; non-pricing adds none
     Given a claim exists with an original-submission calculated_fee_detail row
@@ -128,4 +125,3 @@ Feature: Amendment persistence — assemble & write the durable business record
     Then the timeline contains 2 AMENDMENT events
     And the earlier AMENDMENT event source_id is time-ordered no later than the later one as a UUIDv7
     And the AMENDMENT event source_id UUIDv7 timestamps are non-decreasing in event_timestamp order
-
