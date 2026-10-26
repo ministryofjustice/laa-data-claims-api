@@ -19,10 +19,11 @@ def versions = [
 // Spring Boot 4.1.1 pins tomcat.version to 11.0.24, which is below the fix for the critical Snyk
 // findings SNYK-JAVA-ORGAPACHETOMCATEMBED-20302843 (Incorrect Authorization via FORM auth
 // request-method bypass, fixed in 11.0.25) and SNYK-JAVA-ORGAPACHETOMCATEMBED-20552494
-// (Authentication Bypass by Alternate Name, fixed in 11.0.26). Overriding the BOM property here
-// ensures the resolved tomcat-embed-* versions are patched.
-// TODO: remove when Spring Boot ships a BOM that sets tomcat.version >= 11.0.26.
-ext['tomcat.version'] = '11.0.26'
+// (Authentication Bypass by Alternate Name, fixed in 11.0.26). SNYK-JAVA-ORGAPACHETOMCATEMBED-21707475
+// (Missing Critical Step in Authentication) and -21707477 (Access Control Bypass) are fixed in
+// 11.0.27. Overriding the BOM property here ensures the resolved tomcat-embed-* versions are patched.
+// TODO: remove when Spring Boot ships a BOM that sets tomcat.version >= 11.0.27.
+ext['tomcat.version'] = '11.0.27'
 
 test {
     useJUnitPlatform()
