@@ -10,7 +10,17 @@ on:
         required: true
         default: "patch"
         description: "Release type"
-        options: [ "patch", "minor", "major" ]
+        options: [ "patch", "minor", "major", "none" ]
+      override_version:
+        type: string
+        required: false
+        description: "Hotfix only: version to publish when release_type is none"
+      last_environment:
+        type: choice
+        required: true
+        default: "uat"
+        description: "Hotfix only: last environment to deploy to"
+        options: [ "uat", "staging", "production" ]
 
 env:
   JAVA_VERSION: &JAVA_VERSION '25'
@@ -31,6 +41,7 @@ jobs:
       java_version: *JAVA_VERSION
       java_distribution: *JDK_DISTRIBUTION
       release_type: ${{ inputs.release_type != 'auto' && inputs.release_type || '' }}
+      override_version: ${{ inputs.override_version }}
     secrets:
       gh_token: ${{ secrets.GITHUB_TOKEN }}
       aws_region: ${{ vars.AWS_REGION }}
@@ -138,6 +149,7 @@ jobs:
           pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
 
   deploy-staging:
+    if: ${{ inputs.last_environment != 'uat' }}
     runs-on: ubuntu-latest
     needs:
       - ecr-publish-image
@@ -188,6 +200,7 @@ jobs:
           pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
 
   deploy-production:
+    if: ${{ inputs.last_environment == 'production' }}
     runs-on: ubuntu-latest
     needs:
       - ecr-publish-image
