@@ -25,6 +25,11 @@ def versions = [
 // TODO: remove when Spring Boot ships a BOM that sets tomcat.version >= 11.0.27.
 ext['tomcat.version'] = '11.0.27'
 
+// Spring Boot's BOM pins hibernate-validator below 9.1.5.Final, which fixes
+// SNYK-JAVA-ORGHIBERNATEVALIDATOR-20877468 (Expression Language Injection).
+// TODO: remove when Spring Boot ships a BOM that sets hibernate-validator.version >= 9.1.5.Final.
+ext['hibernate-validator.version'] = '9.1.5.Final'
+
 test {
     useJUnitPlatform()
     finalizedBy jacocoTestReport
