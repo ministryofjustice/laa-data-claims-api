@@ -15,11 +15,11 @@ on:
         type: string
         required: false
         description: "Hotfix only: version to publish when release_type is none"
-      last_environment:
+      target_environment:
         type: choice
         required: true
         default: "uat"
-        description: "Hotfix only: last environment to deploy to"
+        description: "Hotfix only: the single environment to deploy to"
         options: [ "uat", "staging", "production" ]
 
 env:
@@ -101,6 +101,7 @@ jobs:
       snyk_client_secret: ${{ secrets.SNYK_CLIENT_SECRET }}
 
   deploy-uat:
+    if: ${{ inputs.target_environment == '' || inputs.target_environment == 'uat' }}
     runs-on: ubuntu-latest
     needs:
       - ecr-publish-image
@@ -149,7 +150,7 @@ jobs:
           pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
 
   deploy-staging:
-    if: ${{ inputs.last_environment != 'uat' }}
+    if: ${{ !cancelled() && !failure() && (inputs.target_environment == '' || inputs.target_environment == 'staging') }}
     runs-on: ubuntu-latest
     needs:
       - ecr-publish-image
@@ -200,7 +201,7 @@ jobs:
           pact_broker_password: ${{ secrets.PACT_BROKER_PASSWORD }}
 
   deploy-production:
-    if: ${{ inputs.last_environment == 'production' }}
+    if: ${{ !cancelled() && !failure() && (inputs.target_environment == '' || inputs.target_environment == 'production') }}
     runs-on: ubuntu-latest
     needs:
       - ecr-publish-image
