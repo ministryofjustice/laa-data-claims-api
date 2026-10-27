@@ -25,7 +25,7 @@ fi
       (.rule.description // .rule.id | sub("^(Low|Medium|High|Critical) severity - "; "")) as $desc |
       "\(sev_emoji) [\($sev)] \($desc) - \(if .html_url then "<\(.html_url)|GitHub> · " else "" end)<https://security.snyk.io/vuln/\(.rule.id)|Snyk>"
     ' snyk-alerts.json
-    if [ "$ALERT_COUNT" -gt 3 ]; then
+    if [ "${ALERT_COUNT:-0}" -gt 3 ]; then
       echo
       echo "$((ALERT_COUNT - 3)) more alert(s) - <$RUN_URL|View the full list in the GitHub summary>"
     fi
