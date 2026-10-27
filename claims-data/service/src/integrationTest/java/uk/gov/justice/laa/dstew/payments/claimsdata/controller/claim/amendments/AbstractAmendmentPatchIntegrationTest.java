@@ -66,8 +66,8 @@ public abstract class AbstractAmendmentPatchIntegrationTest extends MockServerIn
 
   private static final String CREATED_BY = "amendment-pda-integration-test";
 
-  // Static so office codes are unique across every subclass in the JVM, keeping the per-JVM PDA
-  // cache (keyed on office) isolated between tests and classes.
+  // Static so office codes are unique across every subclass in the JVM and test requests remain
+  // distinguishable across classes.
   private static final AtomicInteger OFFICE_SEQ = new AtomicInteger();
 
   // Static, monotonically increasing line numbers so multiple claims created within the same
@@ -93,8 +93,8 @@ public abstract class AbstractAmendmentPatchIntegrationTest extends MockServerIn
   }
 
   /**
-   * Creates a submission under the seeded bulk submission with a unique office code, giving each
-   * test an isolated PDA cache key space.
+   * Creates a submission under the seeded bulk submission with a unique office code, keeping each
+   * test's PDA request data distinct.
    *
    * @return the new submission id
    */

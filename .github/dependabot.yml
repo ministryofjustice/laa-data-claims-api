@@ -14,7 +14,12 @@ registries:
     type: maven-repository
     url: https://maven.pkg.github.com/ministryofjustice/laa-spring-boot-common
     username: ${{ github.actor }}
-    password: ${{ secrets.GITHUB_TOKEN }}
+    password: ${{ secrets.GH_PACKAGES_TOKEN }}
+  laa-data-controlled-work-validator-github-packages:
+    type: maven-repository
+    url: https://maven.pkg.github.com/ministryofjustice/laa-data-controlled-work-validator
+    username: ${{ github.actor }}
+    password: ${{ secrets.GH_PACKAGES_TOKEN }}
 
 updates:
   - package-ecosystem: "gradle"
@@ -32,10 +37,12 @@ updates:
     groups:
       gradle-updates:
         exclude-patterns:
-          - "uk.gov.justice.laa.dstew.payments.*"
+          - "uk.gov.justice.laa.*"
+          - "uk.gov.laa.*"
       internal-packages:
         patterns:
-          - "uk.gov.justice.laa.dstew.payments*"
+          - "uk.gov.justice.laa.*"
+          - "uk.gov.laa.*"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

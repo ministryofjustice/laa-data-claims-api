@@ -1771,16 +1771,15 @@ components:
           nullable: true
           description: >
             Date and time the provider approved the submission for final validation. Null until
-            the submission is approved. Set by the API on approval and never accepted from a
-            request body; unlike the generic update timestamp it is not overwritten as final
-            validation progresses.
+            the submission is approved. Set by the API on approval and not accepted from a request
+            body.
         approved_by_user_id:
           type: string
           readOnly: true
           nullable: true
           description: >
             The user who approved the submission for final validation. Null until the submission
-            is approved. Set by the API on approval and never accepted from a request body.
+            is approved. Set by the API on approval and not accepted from a request body.
         created_by_user_id:
           type: string
           description: The id of the user who created the submission.

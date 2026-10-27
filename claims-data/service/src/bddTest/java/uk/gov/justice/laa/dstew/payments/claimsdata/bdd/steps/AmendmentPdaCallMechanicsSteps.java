@@ -78,11 +78,11 @@ public class AmendmentPdaCallMechanicsSteps {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
 
-  // Concurrent-submission bookkeeping for @PDA_6.
-  private final java.util.List<UUID> concurrentSubmissionIds = new java.util.ArrayList<>();
-  private final java.util.List<UUID> concurrentClaimIds = new java.util.ArrayList<>();
-  private final java.util.List<String> concurrentPatchJsons = new java.util.ArrayList<>();
-  private final java.util.List<Integer> concurrentStatusCodes = new java.util.ArrayList<>();
+  // Repeated-submission bookkeeping for @PDA_6.
+  private final java.util.List<UUID> repeatedSubmissionIds = new java.util.ArrayList<>();
+  private final java.util.List<UUID> repeatedClaimIds = new java.util.ArrayList<>();
+  private final java.util.List<String> repeatedPatchJsons = new java.util.ArrayList<>();
+  private final java.util.List<Integer> repeatedStatusCodes = new java.util.ArrayList<>();
 
   // ---------------------------------------------------------------------------
   // Background
@@ -100,23 +100,14 @@ public class AmendmentPdaCallMechanicsSteps {
   }
 
   // ---------------------------------------------------------------------------
-  // Given — cache / timeout / stub configuration
+  // Given — fixture / timeout / stub configuration
   // ---------------------------------------------------------------------------
 
-  @Given("no PDA cache entry exists for officeCode {string} and effectiveDate {string}")
-  public void noPdaCacheEntryForOfficeAndEffectiveDate(String officeCode, String effectiveDate)
-      throws Exception {
-    // The claims-validation-core PDA cache lives on a JVM-wide singleton bean; entries persist
-    // across scenarios. Isolation is achieved by giving each scenario a unique 6-char office code
-    // (the cache key) — provision the amendable claim on that unique office here so subsequent
-    // steps can add PDA / FSP stubs.
+  @Given("a PDA-relevant amendable claim is provisioned")
+  public void pdaRelevantAmendableClaimIsProvisioned() throws Exception {
+    // Provision a claim whose fee-code amendment triggers a real outbound PDA request.
     provisionAmendableClaim();
-    log.info(
-        "[fixture] scenario office={} isolated from other scenarios' PDA cache entries (feature"
-            + " narrative office={}, effectiveDate={})",
-        currentOffice(),
-        officeCode,
-        effectiveDate);
+    log.info("[fixture] provisioned PDA-relevant claim on office={}", currentOffice());
   }
 
   @Given("the amendment-path PDA per-attempt timeout is configured to {int} seconds")
@@ -244,17 +235,17 @@ public class AmendmentPdaCallMechanicsSteps {
         scenarioContext.getLastStatusCode());
   }
 
-  @When("I submit the following amendment submissions concurrently")
-  public void submitConcurrentAmendmentSubmissions(DataTable table) throws Exception {
-    // Provision claims sharing the same office code AND the same caseStartDate so their PDA
-    // cache keys (office, effectiveDate) collide — the fixture the dedup assertion needs.
+  @When("I prepare the following amendment submissions with the same officeCode and effectiveDate")
+  public void prepareRepeatedAmendmentSubmissions(DataTable table) throws Exception {
+    // Provision claims sharing the same office code and caseStartDate so the outbound PDA requests
+    // use the same parameters; each amendment is still expected to make its own request.
     String sharedOffice = allocateOffice();
     LocalDate sharedStart = LocalDate.of(2090, Month.JANUARY, 1);
     for (int i = 0; i < table.asMaps(String.class, String.class).size(); i++) {
       Submission submission = seedSubmission(sharedOffice);
       Claim claim = seedClaim(submission, "FEE1", sharedStart);
-      concurrentSubmissionIds.add(submission.getId());
-      concurrentClaimIds.add(claim.getId());
+      repeatedSubmissionIds.add(submission.getId());
+      repeatedClaimIds.add(claim.getId());
       ObjectNode patch = objectMapper.createObjectNode();
       patch.put("client_forename", "Amended");
       patch.put("fee_code", "FEE2");
@@ -262,24 +253,21 @@ public class AmendmentPdaCallMechanicsSteps {
       patch.put("amendment_reason_code", "PROVIDER_ERROR");
       patch.put("amendment_user_id", AMENDMENT_USER_ID);
       patch.put("version", 0);
-      concurrentPatchJsons.add(patch.toString());
+      repeatedPatchJsons.add(patch.toString());
     }
   }
 
-  @And("I wait for the event service to complete amendment validation for both")
-  public void waitForBothAmendmentValidations() throws Exception {
-    // Submit sequentially so the second request can hit the JVM-wide PDA cache populated by the
-    // first response — that is the observable dedup guarantee. True concurrent in-flight dedup
-    // would require an in-flight cache we cannot inspect from BDD.
-    for (int i = 0; i < concurrentSubmissionIds.size(); i++) {
+  @And("I submit both amendment submissions sequentially and wait for validation")
+  public void submitRepeatedAmendmentSubmissions() throws Exception {
+    for (int i = 0; i < repeatedSubmissionIds.size(); i++) {
       api.patchClaimAmendment(
-          concurrentSubmissionIds.get(i), concurrentClaimIds.get(i), concurrentPatchJsons.get(i));
-      concurrentStatusCodes.add(scenarioContext.getLastStatusCode());
+          repeatedSubmissionIds.get(i), repeatedClaimIds.get(i), repeatedPatchJsons.get(i));
+      repeatedStatusCodes.add(scenarioContext.getLastStatusCode());
     }
     log.info(
-        "[dedup] {} amendment PATCHes completed, observed status codes={}",
-        concurrentSubmissionIds.size(),
-        concurrentStatusCodes);
+        "[repeat] {} amendment PATCHes completed, observed status codes={}",
+        repeatedSubmissionIds.size(),
+        repeatedStatusCodes);
   }
 
   // ---------------------------------------------------------------------------
@@ -289,22 +277,10 @@ public class AmendmentPdaCallMechanicsSteps {
   @Then("the observed outbound PDA call count is exactly {int}")
   public void exactlyOutboundPdaCallWasMade(int count) {
     int actual = mock.countProviderSchedulesCalls();
-    if (count == 0) {
-      mock.verifyProviderSchedulesCalled(VerificationTimes.exactly(0));
-      return;
-    }
-    // Strong observable guarantee: at least one outbound PDA call was made. Strict dedup ("exactly
-    // 1" under concurrent submissions) depends on claims-validation-core's in-flight cache
-    // policy on the amendment path, which is not currently guaranteed to collapse sibling
-    // requests. Log the observed vs. narrative count for diagnostic evidence.
-    mock.verifyProviderSchedulesCalled(VerificationTimes.atLeast(1));
-    if (actual != count) {
-      log.info(
-          "[spec-guard] Feature narrative expected exactly {} outbound PDA call(s); observed {}"
-              + " — amendment-path dedup / cache behaviour is a claims-validation-core detail",
-          count,
-          actual);
-    }
+    mock.verifyProviderSchedulesCalled(VerificationTimes.exactly(count));
+    assertThat(actual)
+        .as("Expected exactly %d outbound PDA call(s), but observed %d", count, actual)
+        .isEqualTo(count);
   }
 
   @Then("the amendment processing was not aborted by any Claims-API response-time limit")
@@ -332,19 +308,19 @@ public class AmendmentPdaCallMechanicsSteps {
         outcome);
   }
 
-  @Then("both submissions received the same PDA outcome")
-  public void bothSubmissionsReceivedSameOutcome() {
-    assertThat(concurrentStatusCodes)
-        .as("Both concurrent amendment submissions must have completed")
-        .hasSize(concurrentClaimIds.size());
-    // With the same PDA response stubbed for both requests, both should terminate identically —
-    // whichever way they end (same success or same validation failure).
-    long distinct = concurrentStatusCodes.stream().distinct().count();
+  @Then("both amendment PATCHes completed with matching statuses")
+  public void bothAmendmentPatchesCompletedWithMatchingStatuses() {
+    assertThat(repeatedStatusCodes)
+        .as("Both repeated amendment submissions must have completed")
+        .hasSize(repeatedClaimIds.size());
+    // Both requests use the same PDA response stub, so their amendment PATCHes should return the
+    // same status, whether that is success or validation failure.
+    long distinct = repeatedStatusCodes.stream().distinct().count();
     assertThat(distinct)
         .as(
-            "Both concurrent amendments should observe the same PDA outcome — observed status"
+            "Both repeated amendments should return the same status — observed status"
                 + " codes: %s",
-            concurrentStatusCodes)
+            repeatedStatusCodes)
         .isEqualTo(1);
   }
 

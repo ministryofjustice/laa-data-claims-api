@@ -7,22 +7,56 @@ plugins {
     id 'au.com.dius.pact' version '4.6.19'
 }
 
+// The plugin-created GitHub Packages download repository reads its password only from
+// GITHUB_TOKEN. In CI that is the repository-scoped Actions token, while the PAT with access to
+// private LAA packages is supplied separately as GITHUB_PACKAGES_TOKEN. Reconfigure GitHub
+// Packages dependency repositories to prefer that PAT. This repository handler is distinct from
+// publishing.repositories, so the plugin's publishing credentials remain unchanged.
+//
+// Locally, export GITHUB_ACTOR and GITHUB_PACKAGES_TOKEN (or GITHUB_TOKEN as a fallback) with a
+// PAT that has read:packages, is authorized for ministryofjustice org SSO, and can read the
+// private laa-data-provider-data repository.
+def githubPackagesUsername = System.getenv('GITHUB_ACTOR')?.trim() ?: project.ext.gitHubPackagesUsername
+def githubPackagesPassword = System.getenv('GITHUB_PACKAGES_TOKEN')?.trim() ?: project.ext.gitHubPackagesPassword
+
+repositories.withType(MavenArtifactRepository).configureEach { repo ->
+    if (repo.url.toString().startsWith('https://maven.pkg.github.com/')) {
+        repo.credentials {
+            username = githubPackagesUsername
+            password = githubPackagesPassword
+        }
+    }
+}
+
+repositories {
+    maven {
+        name = 'laaDataControlledWorkValidator'
+        url = uri('https://maven.pkg.github.com/ministryofjustice/laa-data-controlled-work-validator')
+        credentials {
+            username = githubPackagesUsername
+            password = githubPackagesPassword
+        }
+        content {
+            includeGroup 'uk.gov.justice.laa.dstew.payments.claims.validation'
+        }
+    }
+}
+
 def versions = [
         sentry          : '8.28.0',
         // com.fasterxml.jackson.core:jackson-databind / jackson-core are pinned explicitly
         // (below) in addition to importing the jackson-bom platform, to guarantee they win
         // over the lower version recommended by Spring Boot's own BOM (spring-boot-dependencies).
         jacksonBom      : '2.21.7',
-        jacksonToolsBom : '3.1.7'
+        jacksonToolsBom : '3.1.7',
+        claimvalidator  : '1.5.10'
 ]
 
-// Spring Boot 4.1.1 pins tomcat.version to 11.0.24, which is below the fix for the critical Snyk
-// findings SNYK-JAVA-ORGAPACHETOMCATEMBED-20302843 (Incorrect Authorization via FORM auth
-// request-method bypass, fixed in 11.0.25) and SNYK-JAVA-ORGAPACHETOMCATEMBED-20552494
-// (Authentication Bypass by Alternate Name, fixed in 11.0.26). Overriding the BOM property here
-// ensures the resolved tomcat-embed-* versions are patched.
-// TODO: remove when Spring Boot ships a BOM that sets tomcat.version >= 11.0.26.
-ext['tomcat.version'] = '11.0.26'
+// Spring Boot 4.1.1 pins tomcat.version to 11.0.24, below the fix version 11.0.27 for the
+// newly reported Tomcat findings. Overriding the BOM property here ensures the resolved
+// tomcat-embed-* versions are patched.
+// TODO: remove when Spring Boot ships a BOM that sets tomcat.version >= 11.0.27.
+ext['tomcat.version'] = '11.0.27'
 
 test {
     useJUnitPlatform()
@@ -90,8 +124,8 @@ dependencies {
     implementation 'io.netty:netty-codec-classes-quic:4.2.18.Final'
     implementation 'io.netty:netty-codec-native-quic:4.2.18.Final'
 
-    implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:claims-validation-core:1.5.0'
-    implementation 'uk.gov.justice.laa.dstew.payments.claims.validation:reference-fee-scheme-platform-api:1.4.4'
+    implementation "uk.gov.justice.laa.dstew.payments.claims.validation:claims-validation-core:$versions.claimvalidator"
+    implementation "uk.gov.justice.laa.dstew.payments.claims.validation:reference-fee-scheme-platform-api:$versions.claimvalidator"
 
     implementation 'uk.gov.justice.service.laa:laa-spring-boot-starter-auth'
     implementation 'uk.gov.justice.service.laa:laa-spring-boot-starter-sql-scanner'
@@ -184,6 +218,12 @@ dependencies {
 
 bootRun {
     jvmArgs = ["-Dspring.profiles.active=local"]
+}
+
+bootBuildImage {
+    // Use the same architecture as the x64 GitHub-hosted build runners and production images.
+    // Do not rely on the builder's automatic host-platform selection.
+    imagePlatform = 'linux/amd64'
 }
 
 sourceSets {

@@ -5,6 +5,7 @@ on:
     branches:
       - main
 
+permissions: {}
 
 jobs:
   record-commit-against-pact-broker:

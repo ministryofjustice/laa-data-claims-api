@@ -88,21 +88,6 @@ public class AmendmentPdaTriggerSteps {
   private String pendingClientForename = "Amended";
 
   // ---------------------------------------------------------------------------
-  // Background — PDA cache spec-guard
-  // ---------------------------------------------------------------------------
-
-  @Given(
-      "a positive PDA cache entry exists for the pre-amendment officeCode and resolved"
-          + " effectiveDate")
-  public void positivePdaCacheEntryExists() {
-    // The PDA cache lives inside the shared claims-validation-core provider bean (a JVM-wide
-    // ConcurrentHashMap). It is not accessible from the BDD harness; scenarios instead rely on the
-    // classifier's contract that trigger inputs (officeCode/effectiveDate/feeCode) drive the
-    // decision. This step records the pre-condition for traceability.
-    log.info("[spec-guard] Pre-amendment positive PDA cache entry assumed for provisioned claim");
-  }
-
-  // ---------------------------------------------------------------------------
   // Given — original claim provisioning
   // ---------------------------------------------------------------------------
 
