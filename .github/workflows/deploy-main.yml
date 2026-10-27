@@ -69,6 +69,7 @@ jobs:
         with:
           java-version: *JAVA_VERSION
           java-distribution: *JDK_DISTRIBUTION
+          gh-packages-token: ${{ secrets.GH_PACKAGES_TOKEN }}
 
   ecr-publish-image:
     needs: [ release, bdd-test ]

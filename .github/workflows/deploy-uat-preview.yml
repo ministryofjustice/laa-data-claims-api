@@ -102,6 +102,7 @@ jobs:
         with:
           java-version: *JAVA_VERSION
           java-distribution: *JDK_DISTRIBUTION
+          gh-packages-token: ${{ secrets.GH_PACKAGES_TOKEN }}
 
   helm-template-check:
     runs-on: ubuntu-latest

@@ -7,13 +7,34 @@ plugins {
     id 'au.com.dius.pact' version '4.6.19'
 }
 
+// The plugin-created GitHub Packages download repository reads its password only from
+// GITHUB_TOKEN. In CI that is the repository-scoped Actions token, while the PAT with access to
+// private LAA packages is supplied separately as GITHUB_PACKAGES_TOKEN. Reconfigure GitHub
+// Packages dependency repositories to prefer that PAT. This repository handler is distinct from
+// publishing.repositories, so the plugin's publishing credentials remain unchanged.
+//
+// Locally, export GITHUB_ACTOR and GITHUB_PACKAGES_TOKEN (or GITHUB_TOKEN as a fallback) with a
+// PAT that has read:packages, is authorized for ministryofjustice org SSO, and can read the
+// private laa-data-provider-data repository.
+def githubPackagesUsername = System.getenv('GITHUB_ACTOR')?.trim() ?: project.ext.gitHubPackagesUsername
+def githubPackagesPassword = System.getenv('GITHUB_PACKAGES_TOKEN')?.trim() ?: project.ext.gitHubPackagesPassword
+
+repositories.withType(MavenArtifactRepository).configureEach { repo ->
+    if (repo.url.toString().startsWith('https://maven.pkg.github.com/')) {
+        repo.credentials {
+            username = githubPackagesUsername
+            password = githubPackagesPassword
+        }
+    }
+}
+
 repositories {
     maven {
         name = 'laaDataControlledWorkValidator'
         url = uri('https://maven.pkg.github.com/ministryofjustice/laa-data-controlled-work-validator')
         credentials {
-            username = System.getenv('GITHUB_ACTOR')
-            password = System.getenv('GITHUB_PACKAGES_TOKEN') ?: System.getenv('GITHUB_TOKEN')
+            username = githubPackagesUsername
+            password = githubPackagesPassword
         }
         content {
             includeGroup 'uk.gov.justice.laa.dstew.payments.claims.validation'

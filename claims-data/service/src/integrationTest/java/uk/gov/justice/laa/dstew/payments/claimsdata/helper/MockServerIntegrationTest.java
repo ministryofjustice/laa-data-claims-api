@@ -336,8 +336,8 @@ public abstract class MockServerIntegrationTest extends AbstractIntegrationTest 
 
   /**
    * Stubs the Provider Details API {@code getProviderFirmSchedules} call to return {@code 200} with
-   * a valid schedules body for any office. Used to exercise the PDA cache/call layer on the
-   * amendment path (DSTEW-1646 / DSTEW-1773).
+   * a valid schedules body for any office. Used to exercise the PDA call layer on the amendment
+   * path (DSTEW-1646 / DSTEW-1773).
    *
    * @throws IOException if the response fixture cannot be read
    */
@@ -347,9 +347,7 @@ public abstract class MockServerIntegrationTest extends AbstractIntegrationTest 
 
   /**
    * Stubs the Provider Details API {@code getProviderFirmSchedules} call to return {@code 200} with
-   * the JSON body read from the named response file. The schedule start/end dates in that body
-   * determine the positive-cache coverage window, so a test that needs a cache hit for a given
-   * effective date must supply a fixture whose window covers it.
+   * the JSON body read from the named response file.
    *
    * @param responseFile the response file under {@code responses/}
    * @throws IOException if the response fixture cannot be read
@@ -418,8 +416,8 @@ public abstract class MockServerIntegrationTest extends AbstractIntegrationTest 
   /**
    * Verifies how many times the Provider Details {@code /schedules} endpoint was called, regardless
    * of office. Because MockServer expectations are reset after each test, the count reflects only
-   * the calls made by the current test - so this doubles as the cache hit/miss and no-retry
-   * assertion for the PDA call layer.
+   * the calls made by the current test - so this supports exact request-count and no-retry
+   * assertions for the PDA call layer.
    *
    * @param times the expected number of outbound {@code /schedules} calls
    */
