@@ -149,7 +149,7 @@ runs:
         webhook-type: incoming-webhook
         payload: |
           {
-            "text": "Updating ${{ inputs.environment-name }} from ${{ inputs.from-ref }} → ${{ steps.build_list.outputs.to-label }}\nRelease by ${{ steps.build_list.outputs.release-by }}",
+            "text": "${{ github.repository }}: Updating ${{ inputs.environment-name }} from ${{ inputs.from-ref }} → ${{ steps.build_list.outputs.to-label }}\nRelease by ${{ steps.build_list.outputs.release-by }}",
             "attachments": [
               {
                 "color": "#2eb67d",
