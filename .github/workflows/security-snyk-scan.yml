@@ -251,6 +251,7 @@ jobs:
     needs: [image-scan, vulnerability-report]
     if: ${{ always() && needs.image-scan.result == 'failure' }}
     runs-on: ubuntu-latest
+    permissions: {}
     env:
       SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook }}
     steps:

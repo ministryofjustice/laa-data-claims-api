@@ -201,6 +201,12 @@ bootRun {
     jvmArgs = ["-Dspring.profiles.active=local"]
 }
 
+bootBuildImage {
+    // Use the same architecture as the x64 GitHub-hosted build runners and production images.
+    // Do not rely on the builder's automatic host-platform selection.
+    imagePlatform = 'linux/amd64'
+}
+
 sourceSets {
     pactTest {
         java {
