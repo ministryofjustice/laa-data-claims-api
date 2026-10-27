@@ -19,14 +19,6 @@ import org.springframework.http.HttpStatus;
 @Getter
 public enum ClaimAmendmentValidationCode {
 
-  /** The Amendments feature is disabled by configuration. */
-  INVALID_AMENDMENTS_FEATURE_DISABLED(
-      ValidationSeverity.FATAL,
-      HttpStatus.SERVICE_UNAVAILABLE,
-      "Amendments are not currently enabled.",
-      "Amendments feature flag (laa.claims.api.amendments.enabled) is disabled",
-      null),
-
   /**
    * The submitted amendment changes nothing (no provider-requested field differs from the stored
    * value), so there is nothing to amend.

@@ -52,8 +52,7 @@ Feature: FSP repricing — parent-level integration (ordering & atomicity)
   #   * Assessed-claim rejection internals → DSTEW-1767
 
   Background:
-    Given the amendments feature flag is enabled
-    And the amendment PDA trigger will report "pda_relevant" as "true"
+    Given the amendment PDA trigger will report "pda_relevant" as "true"
     And the PDA service will respond "authorised" within the amendment-path timeout
 
   @DS1595_1
@@ -80,4 +79,3 @@ Feature: FSP repricing — parent-level integration (ordering & atomicity)
     And no claim_amendment record was inserted for this claim by this attempt
     And no FSP-derived calculated_fee_detail row was inserted for this claim by this attempt
     And the claim persisted state matches the pre-amendment state
-

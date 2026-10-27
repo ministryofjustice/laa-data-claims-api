@@ -31,7 +31,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 import uk.gov.justice.laa.dstew.payments.claimsdata.bdd.BddBeansConfiguration.BddServerInfo;
-import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
@@ -122,7 +121,6 @@ public class AssessmentAdvancesClaimVersionSteps {
   @Autowired private JdbcClient jdbcClient;
   @Autowired private RestTemplate restTemplate;
   @Autowired private BddServerInfo serverInfo;
-  @Autowired private ClaimsApiProperties claimsApiProperties;
 
   // Scenario-scoped state. Instances of step classes are new per scenario under cucumber-spring,
   // so plain fields are safe.
@@ -157,9 +155,6 @@ public class AssessmentAdvancesClaimVersionSteps {
         () -> assertThat(serverInfo.baseUrl()).as("server base URL").isNotBlank());
   }
 
-  // NOTE: "the amendments feature flag is enabled" is defined in AmendmentsFeatureFlagSteps and is
-  // reused from there via Cucumber's cross-class step registry — do not redefine it here.
-
   @Given("claim {string} exists in status {string} and is amendable")
   @Transactional
   public void claimExistsInStatusAndIsAmendable(String label, String status) {
@@ -170,10 +165,6 @@ public class AssessmentAdvancesClaimVersionSteps {
             + status
             + " for DSTEW-2051 scenario",
         () -> {
-          // The Background enables the amendments flag via AmendmentsFeatureFlagSteps, but that
-          // step class is separate; make the flag deterministic here as well so a rearrangement
-          // of Cucumber's step-invocation order cannot destabilise this suite.
-          claimsApiProperties.getAmendments().setEnabled("true");
           seedAmendableClaim(label, ClaimStatus.valueOf(status));
         });
   }

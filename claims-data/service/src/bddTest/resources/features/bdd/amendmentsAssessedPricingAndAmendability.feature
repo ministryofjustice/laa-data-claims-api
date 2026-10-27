@@ -27,8 +27,7 @@ Feature: Amendment gates — field amendability & assessed-claim pricing restric
   # classifier internals → DSTEW-1766.
 
   Background:
-    Given the amendments feature flag is enabled
-    And the amendment PDA trigger will report "pda_relevant" as "true"
+    Given the amendment PDA trigger will report "pda_relevant" as "true"
     And the PDA service will respond "authorised" within the amendment-path timeout
 
   # ============================================================================
@@ -135,4 +134,3 @@ Feature: Amendment gates — field amendability & assessed-claim pricing restric
     Then the response contains error code "INVALID_PRICING_AMENDMENT_ON_ASSESSED_CLAIM"
     And no outbound FSP call was made from the amendment harness
     And no amendment state was committed
-
