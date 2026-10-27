@@ -137,6 +137,7 @@ jobs:
     needs: [ build-and-test, compute-snapshot-version, bdd-test ]
     uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@57f8d08c0cf807ea64fc121500669c4d3dada733 # v2.5.1
     permissions:
+      actions: read
       contents: read
       id-token: write
       security-events: write
