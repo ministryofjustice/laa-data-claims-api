@@ -4,68 +4,13 @@ version: v1.25.1
 #
 ignore:
 
-  SNYK-UBUNTU2404-GLIBC-18741477:
-    - '*':
-        reason: >-
-          Base-image (Ubuntu 24.04) glibc CVE-2026-6368 introduced via the
-          shared build/scanner image. Fixed upstream in 2.39-0ubuntu8.9; will be
-          resolved by rebuilding on the updated base image. Not fixable from
-          application code.
-        expires: 2026-10-25T00:00:00.000Z
-
-  SNYK-UBUNTU2404-GLIBC-18741516:
-    - '*':
-        reason: >-
-          Base-image (Ubuntu 24.04) glibc CVE-2026-6791 introduced via the
-          shared build/scanner image. Fixed upstream in 2.39-0ubuntu8.9; will be
-          resolved by rebuilding on the updated base image. Not fixable from
-          application code.
-        expires: 2026-10-25T00:00:00.000Z
-
-  SNYK-UBUNTU2404-GLIBC-19383476:
-    - '*':
-        reason: >-
-          Base-image (Ubuntu 24.04) glibc CVE-2026-19499 introduced via the
-          shared build/scanner image. Fixed upstream in 2.39-0ubuntu8.9; will be
-          resolved by rebuilding on the updated base image. Not fixable from
-          application code.
-        expires: 2026-10-25T00:00:00.000Z
-
-  SNYK-UBUNTU2404-GLIBC-19383517:
-    - '*':
-        reason: >-
-          Base-image (Ubuntu 24.04) glibc CVE-2026-19542 introduced via the
-          shared build/scanner image. Fixed upstream in 2.39-0ubuntu8.9; will be
-          resolved by rebuilding on the updated base image. Not fixable from
-          application code.
-        expires: 2026-10-25T00:00:00.000Z
-
-  SNYK-UBUNTU2404-GLIBC-19383885:
-    - '*':
-        reason: >-
-          Base-image (Ubuntu 24.04) glibc CVE-2026-77117 introduced via the
-          shared build/scanner image. Fixed upstream in 2.39-0ubuntu8.9; will be
-          resolved by rebuilding on the updated base image. Not fixable from
-          application code.
-        expires: 2026-10-25T00:00:00.000Z
-
   SNYK-UBUNTU2404-GLIBC-19437583:
     - '*':
         reason: >-
-          Base-image (Ubuntu 24.04) glibc CVE-2026-18374 introduced via the
-          shared build/scanner image. Fixed upstream in 2.39-0ubuntu8.9; will be
-          resolved by rebuilding on the updated base image. Not fixable from
-          application code.
-        expires: 2026-10-25T00:00:00.000Z
-
-  SNYK-UBUNTU2404-GLIBC-19437849:
-    - '*':
-        reason: >-
-          Base-image (Ubuntu 24.04) glibc CVE-2026-80489 introduced via the
-          shared build/scanner image. Fixed upstream in 2.39-0ubuntu8.9; will be
-          resolved by rebuilding on the updated base image. Not fixable from
-          application code.
-        expires: 2026-10-25T00:00:00.000Z
+          CVE-2026-18374 is in the Ubuntu 24.04 image used by the shared reusable
+          ecr-publish-image workflow. It cannot be fixed in this repository; this
+          narrow ignore is time-boxed pending remediation of that shared image.
+        expires: 2026-11-10T00:00:00.000Z
 
   SNYK-UBUNTU2404-GLIBC-19785393:
     - '*':
