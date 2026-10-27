@@ -25,6 +25,9 @@ on:
       gh_token:
         description: Required GitHub token used by the image build and scan workflow
         required: true
+      gh_packages_token:
+        description: "Read-only PAT (read:packages) for resolving GitHub Packages hosted in other repositories."
+        required: false
       ecr_repository:
         description: Required ECR repository used for the container image
         required: true
@@ -47,8 +50,9 @@ on:
 jobs:
   image-scan:
     name: Container image Snyk scan
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@035ee98ca0047659f865532ea6234abd69529ee8 # v2.5.0
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/ecr-publish-image.yml@57f8d08c0cf807ea64fc121500669c4d3dada733 # v2.5.1
     permissions:
+      actions: read
       contents: read
       id-token: write
       security-events: write
@@ -61,6 +65,7 @@ jobs:
       publish: 'false'
     secrets:
       gh_token: ${{ secrets.gh_token }}
+      gh_packages_token: ${{ secrets.gh_packages_token }}
       ecr_repository: ${{ secrets.ecr_repository }}
       ecr_region: ${{ secrets.ecr_region }}
       ecr_role_to_assume: ${{ secrets.ecr_role_to_assume }}
@@ -247,6 +252,7 @@ jobs:
     needs: [image-scan, vulnerability-report]
     if: ${{ always() && needs.image-scan.result == 'failure' }}
     runs-on: ubuntu-latest
+    permissions: {}
     env:
       SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook }}
     steps:

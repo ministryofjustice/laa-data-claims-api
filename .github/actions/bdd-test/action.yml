@@ -14,6 +14,9 @@ inputs:
     description: "Name of the uploaded reports artifact"
     required: false
     default: "bdd-reports"
+  gh-packages-token:
+    description: "Token for resolving private GitHub Packages dependencies"
+    required: false
 
 runs:
   using: "composite"
@@ -32,6 +35,7 @@ runs:
       env:
         GITHUB_ACTOR: ${{ github.actor }}
         GITHUB_TOKEN: ${{ github.token }}
+        GITHUB_PACKAGES_TOKEN: ${{ inputs.gh-packages-token }}
       run: ./gradlew :claims-data:service:bddTest --no-daemon
 
     - name: Upload BDD reports

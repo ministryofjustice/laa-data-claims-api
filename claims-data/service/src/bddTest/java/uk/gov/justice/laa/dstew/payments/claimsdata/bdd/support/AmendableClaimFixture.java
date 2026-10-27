@@ -70,8 +70,8 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
 public class AmendableClaimFixture {
 
   private static final String SEED_ACTOR = "bdd-DSTEW-2301";
-  // Every scenario gets a unique 6-char office code so the JVM-wide PDA cache (keyed on office)
-  // cannot false-pass across scenarios. This mirrors the existing PDA harness isolation pattern.
+  // Give each scenario a distinct 6-char office code so its recorded PDA requests remain easy to
+  // distinguish in test diagnostics.
   private static final AtomicInteger OFFICE_SEQ = new AtomicInteger();
   private static final String DEFAULT_FEE_CODE = "CAPA";
   // Reference-data-valid Legal Help matter type. Codes like "MAT01"/"MTC" trip
