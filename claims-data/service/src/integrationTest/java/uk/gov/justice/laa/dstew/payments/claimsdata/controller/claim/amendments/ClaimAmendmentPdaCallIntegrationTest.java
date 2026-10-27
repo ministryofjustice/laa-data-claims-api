@@ -30,15 +30,15 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
  * <p>These drive the real {@code PATCH /api/v1/submissions/{submissionId}/claims/{claimId}}
  * endpoint through the genuine amendment chain: prepare {@literal ->} validate (including {@code
  * AmendmentExternalValidationStep}, which delegates to the shared claims-validation-core {@code
- * ValidationService} that owns the PDA cache and the outbound {@code getProviderFirmSchedules} HTTP
- * call). The outbound call is stubbed via {@link MockServerIntegrationTest}, so the tests assert
- * the ticket's behaviour purely by observing the MockServer interactions:
+ * ValidationService} that invokes the outbound {@code getProviderFirmSchedules} HTTP call). The
+ * outbound call is stubbed via {@link MockServerIntegrationTest}, so the tests assert the ticket's
+ * behaviour purely by observing the MockServer interactions:
  *
  * <ul>
- *   <li><b>Cache hit</b> - two PDA-relevant amendments resolving to the same {@code officeCode +
- *       effectiveDate} key make exactly one outbound call (the second is served from cache).
- *   <li><b>Cache miss / single attempt</b> - a PDA-relevant amendment makes exactly one outbound
- *       call (single synchronous attempt, no retries).
+ *   <li><b>Repeated calls</b> - two PDA-relevant amendments with the same {@code officeCode +
+ *       effectiveDate} each make an outbound call; schedule responses are not cached.
+ *   <li><b>Single attempt</b> - a PDA-relevant amendment makes exactly one outbound call (single
+ *       synchronous attempt, no retries).
  *   <li><b>Not triggered</b> - a non-PDA-impacting amendment makes no outbound call (Step 10
  *       receives {@code pda_relevant = false}).
  *   <li><b>Timeout</b> - with the amendment-path read timeout overridden small and the stub delayed
@@ -46,18 +46,13 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimPatch;
  *       the full response), and the generic PDA technical-error validation issue is surfaced.
  * </ul>
  *
- * <p><b>Cache isolation.</b> The claims-validation-core PDA caches are plain {@code
- * ConcurrentHashMap} instance fields on a JVM-wide singleton provider bean; they persist across
- * tests and are <b>not</b> cleared by the Spring {@code CacheManager}. The positive schedule cache
- * is keyed on {@code officeCode} alone (a hit additionally requires the cached coverage window to
- * cover the effective date), while the negative/in-flight caches are keyed on {@code officeCode +
- * effectiveDate}. Each test therefore creates its own submission with a unique office code so its
- * cache entries can never collide with another test's (or with the deliberate reuse inside the
- * cache-hit test).
+ * <p><b>Request isolation.</b> Each test creates a submission with a unique office code to keep its
+ * request data distinct. The configured Provider Details HTTP provider does not cache schedule
+ * responses, so repeated validations each make an outbound request.
  *
  * <p><b>Assertion scope.</b> The PDA behaviour under test happens in the validate phase, so the
- * cache/no-retry assertions observe the MockServer call counts. The timeout additionally asserts
- * the resulting technical-error issue; the amendment commit path is owned by DSTEW-1771.
+ * call-count/no-retry assertions observe the MockServer call counts. The timeout additionally
+ * asserts the resulting technical-error issue; the amendment commit path is owned by DSTEW-1771.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -81,18 +76,15 @@ class ClaimAmendmentPdaCallIntegrationTest extends AbstractAmendmentPatchIntegra
   }
 
   @Test
-  @DisplayName("cache hit - second amendment with the same office and effective date makes no call")
-  void cacheHitSecondAmendmentWithSameKeyMakesNoOutboundCall() throws Exception {
-    // The positive schedule cache is keyed on officeCode and a second call is only a hit when the
-    // cached coverage window (built from the response's schedule start/end dates) covers the
-    // effective date. Use a wide-window fixture so the shared effective date below is covered.
-    stubProviderSchedules("provider-details/get-firm-schedules-wide-window-200.json");
+  @DisplayName("two amendments with the same office and effective date each make an outbound call")
+  void repeatedAmendmentsWithSameKeyEachMakeOutboundCall() throws Exception {
+    stubProviderSchedulesOk();
 
     UUID submissionId = createSubmissionWithUniqueOffice();
-    LocalDate sharedStartDate = LocalDate.of(2099, Month.JANUARY, 1);
+    LocalDate sharedStartDate = LocalDate.of(2025, Month.JULY, 31);
 
     // Two claims under the same office, with the same effective-date-determining state, so both
-    // amendments resolve to the same PDA cache key (officeCode + effectiveDate).
+    // amendments issue the same PDA request (officeCode + effectiveDate).
     Claim firstClaim =
         createAmendableClaim(submissionId, b -> b.feeCode("FEE1").caseStartDate(sharedStartDate));
     Claim secondClaim =
@@ -103,17 +95,16 @@ class ClaimAmendmentPdaCallIntegrationTest extends AbstractAmendmentPatchIntegra
     ClaimPatch secondPatch = createBasePatch();
     secondPatch.setFeeCode("FEE2");
 
-    performPatch(submissionId, firstClaim.getId(), firstPatch); // cache miss -> one outbound call
-    performPatch(submissionId, secondClaim.getId(), secondPatch); // cache hit -> no outbound call
+    performPatch(submissionId, firstClaim.getId(), firstPatch);
+    performPatch(submissionId, secondClaim.getId(), secondPatch);
 
-    verifyProviderSchedulesCalled(VerificationTimes.exactly(1));
+    verifyProviderSchedulesCalled(VerificationTimes.exactly(2));
   }
 
   @ParameterizedTest
   @EnumSource(PdaImpactingField.class)
-  @DisplayName("cache miss - a PDA-relevant field change makes exactly one attempt (no retry)")
-  void cacheMissPdaRelevantFieldChangeMakesSingleOutboundCall(PdaImpactingField field)
-      throws Exception {
+  @DisplayName("a PDA-relevant field change makes exactly one attempt (no retry)")
+  void pdaRelevantFieldChangeMakesSingleOutboundCall(PdaImpactingField field) throws Exception {
     stubProviderSchedulesOk();
 
     UUID submissionId = createSubmissionWithUniqueOffice();
@@ -124,8 +115,7 @@ class ClaimAmendmentPdaCallIntegrationTest extends AbstractAmendmentPatchIntegra
 
     performPatch(submissionId, claim.getId(), patch);
 
-    // Cache miss -> exactly one synchronous attempt; resilience4j pdaRetry.maxAttempts=1 -> no
-    // retry.
+    // Exactly one synchronous attempt; resilience4j pdaRetry.maxAttempts=1 -> no retry.
     verifyProviderSchedulesCalled(VerificationTimes.exactly(1));
   }
 

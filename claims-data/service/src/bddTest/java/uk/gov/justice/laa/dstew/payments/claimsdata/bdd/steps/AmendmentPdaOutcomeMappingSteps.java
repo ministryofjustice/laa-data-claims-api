@@ -329,9 +329,8 @@ public class AmendmentPdaOutcomeMappingSteps {
   }
 
   private void provisionAmendableClaim(String feeCode) throws Exception {
-    // Every scenario gets a unique 6-char office code so the JVM-wide PDA cache (keyed on office)
-    // stays isolated between scenarios. Also stub the FSP endpoints OK so the amendment flow can
-    // reach the PDA step under test.
+    // Every scenario gets a unique 6-char office code for traceable PDA request data. Also stub the
+    // FSP endpoints OK so the amendment flow can reach the PDA step under test.
     String office = String.format("P2%04d", OFFICE_SEQ.incrementAndGet());
     String period = periodHelper.nextAvailablePeriod(office, AreaOfLaw.LEGAL_HELP);
 
