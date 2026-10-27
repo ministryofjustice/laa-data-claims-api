@@ -69,6 +69,8 @@ public class SubmissionCalculatedTotalLatestRowSteps {
           "is_nil_submission",
           "number_of_claims",
           "submitted",
+          "approved_on",
+          "approved_by_user_id",
           "claims",
           "calculated_total_amount",
           "assessed_total_amount",
