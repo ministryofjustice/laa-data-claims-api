@@ -30,10 +30,6 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.persistenc
  *       defaults, not the other way round; a strictly lower order guarantees that.
  * </ul>
  *
- * <p><b>Feature-flag reset is NOT owned here.</b> {@link BddHooks} already resets {@code
- * laa.claims.api.amendments.enabled} to {@code null} at {@code order = 0}. Duplicating that work
- * would just race and confuse ownership.
- *
  * <p><b>Spy beans</b>: {@link ValidationService} and {@code ClaimAmendmentPersistenceService} are
  * declared as {@code @MockitoSpyBean} directly on {@link
  * uk.gov.justice.laa.dstew.payments.claimsdata.bdd.CucumberSpringConfiguration} because Spring's

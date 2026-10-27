@@ -34,7 +34,7 @@ public class ClaimAmendmentValidationMessagePersistenceService {
    * repricing for this claim.
    *
    * @param claim managed claim already merged and versioned in the commit transaction
-   * @param state amendment state carrying the latest external-validation warning issues
+   * @param state amendment state carrying the latest validation and repricing warning issues
    */
   @Transactional
   public void persistCurrentWarnings(Claim claim, ClaimAmendmentState state) {

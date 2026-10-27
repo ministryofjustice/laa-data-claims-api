@@ -27,10 +27,10 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.ClaimStatus;
  * End-to-end integration tests for the fee-code Area-of-Law amendment gate (DSTEW-1768).
  *
  * <p>These drive the real {@code PATCH /api/v1/submissions/{submissionId}/claims/{claimId}}
- * endpoint with the amendments feature flag enabled, so the genuine amendment chain runs through
- * {@code AmendmentExternalValidationStep}, which delegates to the shared claims-validation-core
- * {@code ValidationService}. That library resolves the fee code's Area of Law from the Fee Scheme
- * {@code /api/v2/fee-details/{feeCode}} endpoint (stubbed via {@link
+ * endpoint through the genuine amendment chain, which runs through {@code
+ * AmendmentExternalValidationStep}, which delegates to the shared claims-validation-core {@code
+ * ValidationService}. That library resolves the fee code's Area of Law from the Fee Scheme {@code
+ * /api/v2/fee-details/{feeCode}} endpoint (stubbed via {@link
  * uk.gov.justice.laa.dstew.payments.claimsdata.helper.MockServerIntegrationTest MockServer}) and
  * surfaces it on the result's {@code resolvedData}. The step rejects a fee-code change whose
  * resolved Area of Law differs from the claim's.

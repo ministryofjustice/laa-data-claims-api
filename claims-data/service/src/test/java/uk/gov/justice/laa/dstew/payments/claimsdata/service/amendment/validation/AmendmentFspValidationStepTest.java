@@ -20,6 +20,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationIssue;
+import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationSeverity;
 import uk.gov.justice.laa.dstew.payments.claimsdata.client.FeeSchemePlatformRestClient;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.AmendmentDiff;
 import uk.gov.justice.laa.dstew.payments.claimsdata.dto.amendment.CalculatedFeeDetailSnapshot;
@@ -163,6 +165,43 @@ class AmendmentFspValidationStepTest {
   }
 
   @Test
+  @DisplayName("successful repricing captures every FSP warning with its original code and text")
+  void validate_whenFspReturnsWarnings_collectsThemForPersistence() {
+    ClaimAmendmentState state =
+        stateBuilder
+            .beforeState(beforeStateBuilder.areaOfLaw(AreaOfLaw.CRIME_LOWER).build())
+            .postAmendmentState(
+                postStateBuilder.areaOfLaw(AreaOfLaw.CRIME_LOWER).feeCode("FEE02").build())
+            .build();
+    FeeCalculationResponse response =
+        new FeeCalculationResponse()
+            .feeCode("FEE02")
+            .validationMessages(
+                List.of(
+                    new ValidationMessagesInner()
+                        .type(ValidationMessagesInner.TypeEnum.WARNING)
+                        .code("WARN01")
+                        .message("  First warning  "),
+                    new ValidationMessagesInner()
+                        .type(ValidationMessagesInner.TypeEnum.WARNING)
+                        .code("WARN02")
+                        .message("Second warning")));
+    when(fspClient.calculateFee(any())).thenReturn(ResponseEntity.ok(response));
+
+    assertThat(validationStep.validate(state)).isEmpty();
+    assertThat(state.getFspResponseContext()).isSameAs(response);
+    assertThat(state.getFspWarnings())
+        .extracting(ValidationIssue::getCode)
+        .containsExactly("WARN01", "WARN02");
+    assertThat(state.getFspWarnings())
+        .extracting(ValidationIssue::getMessage)
+        .containsExactly("  First warning  ", "Second warning");
+    assertThat(state.getFspWarnings())
+        .extracting(ValidationIssue::getSeverity)
+        .containsExactly(ValidationSeverity.WARNING, ValidationSeverity.WARNING);
+  }
+
+  @Test
   @DisplayName("1595-E: Should treat FSP validationMessages errors as fatal validation failures")
   void validate_whenFspReturnsValidationMessagesError_returnsFatalValidationError() {
     ClaimAmendmentState state =
@@ -198,6 +237,7 @@ class AmendmentFspValidationStepTest {
     assertThat(error.getMessage())
         .contains("Cases started before 1st April 2013 cannot be accepted");
     assertThat(state.getFspResponseContext()).isNull();
+    assertThat(state.getFspWarnings()).isEmpty();
     verifyNoInteractions(claimStateSnapshotMapper);
   }
 
@@ -250,6 +290,7 @@ class AmendmentFspValidationStepTest {
         .noneSatisfy(msg -> assertThat(msg).contains("WARN01"));
 
     assertThat(state.getFspResponseContext()).isNull();
+    assertThat(state.getFspWarnings()).isEmpty();
     verifyNoInteractions(claimStateSnapshotMapper);
   }
 

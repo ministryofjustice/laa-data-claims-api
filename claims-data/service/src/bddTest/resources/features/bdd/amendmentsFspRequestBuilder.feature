@@ -48,9 +48,6 @@ Feature: Amendment FSP request builder — built from post-amendment claim state
   #               DSTEW-1760; response mapping → DSTEW-1761; persisting the
   #               calc-fee row → DSTEW-1762/1907; non-functional requirements.
 
-  Background:
-    Given the amendments feature flag is enabled
-
   # AC1 + AC2 — the worked example: a changed FSP-input field (case_start_date)
   # carries the post-amendment value; an omitted FSP-input field (fee_code) carries
   # the current stored value.
@@ -93,6 +90,5 @@ Feature: Amendment FSP request builder — built from post-amendment claim state
     And the outbound FSP request field "caseConcludedDate" equals "2025-07-15"
     And the outbound FSP request field "startDate" equals "2025-07-01"
     And the outbound FSP request field "feeCode" equals "CAPA"
-
 
 
