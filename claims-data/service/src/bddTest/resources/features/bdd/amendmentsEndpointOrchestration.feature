@@ -26,9 +26,6 @@ Feature: Amendment endpoint — end-to-end orchestration (DSTEW-1593 wiring)
   #   * OCC 409 detail / rollback   → amendmentsFinalSaveGuard.feature
   #   * PDA / FSP call mechanics    → their own child files
 
-  Background:
-    Given the amendments feature flag is enabled
-
   # ============================================================================
   # Happy paths — end-to-end atomic save
   # ============================================================================
@@ -145,7 +142,6 @@ Feature: Amendment endpoint — end-to-end orchestration (DSTEW-1593 wiring)
     And the orchestration invoked the outbound PDA and FSP calls
     And claim.is_amended is true
     And exactly one claim_amendment row was inserted for this claim
-
 
 
 

@@ -26,8 +26,7 @@ Feature: PDA re-validation — outcome mapping (validation messages & terminal t
   #               Parent-flow integration → amendmentsPdaParentIntegration.feature.
 
   Background:
-    Given the amendments feature flag is enabled
-    And the amendment PDA trigger will report "pda_relevant" as "true"
+    Given the amendment PDA trigger will report "pda_relevant" as "true"
 
   @DS1774_1
   @smoke
@@ -137,4 +136,3 @@ Feature: PDA re-validation — outcome mapping (validation messages & terminal t
       | validation failure | OFC-A81 | return a schedule set with no matching Area of Law | validation_failure |
       | technical failure  | OFC-A82 | respond with HTTP 500                              | technical_failure  |
       | external timeout   | OFC-A83 | not respond before 10 seconds                      | timeout            |
-

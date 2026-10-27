@@ -16,13 +16,10 @@ import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
-import uk.gov.justice.laa.dstew.payments.claimsdata.config.ClaimsApiProperties;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.CalculatedFeeDetail;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.ClaimSummaryFee;
@@ -40,14 +37,14 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.util.Uuid7;
  * (Provider Details API) path via MockServer.
  *
  * <p>Extends {@link MockServerIntegrationTest} (which owns the external-HTTP stub/verify helpers)
- * and adds the pieces common to the PDA call-layer and PDA outcome-mapping suites: enabling the
- * amendments feature flag, seeding claims data, stubbing the Fee Scheme Platform calls, creating a
- * uniquely-officed submission and an amendable claim, and driving the PATCH endpoint.
+ * and adds the pieces common to the PDA call-layer and PDA outcome-mapping suites: seeding claims
+ * data, stubbing the Fee Scheme Platform calls, creating a uniquely-officed submission and an
+ * amendable claim, and driving the PATCH endpoint.
  *
  * <p>It is intentionally a separate base rather than folded into {@link MockServerIntegrationTest},
  * because that class's other (non-PATCH) subclasses perform their own seeding in
  * {@code @BeforeEach}; a shared seeding hook there would double-seed and clash. Keeping it here
- * scopes the amendment-flag toggle and seeding to just the PATCH-driven PDA suites.
+ * scopes the amendment seeding to just the PATCH-driven PDA suites.
  */
 public abstract class AbstractAmendmentPatchIntegrationTest extends MockServerIntegrationTest {
 
@@ -87,27 +84,12 @@ public abstract class AbstractAmendmentPatchIntegrationTest extends MockServerIn
     return mapper;
   }
 
-  @Autowired protected ClaimsApiProperties claimsApiProperties;
-
-  private boolean originalAmendmentFlag;
-
   @BeforeEach
-  void enableAmendmentsSeedAndStubFeeScheme() throws IOException {
-    enableAmendmentsFlag();
+  void seedAndStubFeeScheme() throws IOException {
     seedClaimsData();
     // The non-PDA external calls succeed with the default fixtures; each test stubs the PDA
     // /schedules call itself to drive the behaviour under test.
     stubFeeSchemeEndpoints();
-  }
-
-  @AfterEach
-  void restoreAmendmentsFlag() {
-    claimsApiProperties.getAmendments().setEnabled(String.valueOf(originalAmendmentFlag));
-  }
-
-  protected void enableAmendmentsFlag() {
-    originalAmendmentFlag = claimsApiProperties.getAmendments().isEnabled();
-    claimsApiProperties.getAmendments().setEnabled("true");
   }
 
   /**

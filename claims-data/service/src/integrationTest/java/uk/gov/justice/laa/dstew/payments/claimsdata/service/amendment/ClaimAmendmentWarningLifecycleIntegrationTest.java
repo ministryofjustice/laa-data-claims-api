@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockserver.model.HttpRequest.request;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.AmendmentTestFixtures.REASON_PROVIDER_ERROR;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.AmendmentTestFixtures.REQUESTED_BY_PROVIDER;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.AmendmentTestFixtures.VALID_USER_UUID;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockserver.model.ClearType;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.data.domain.PageRequest;
 import uk.gov.justice.laa.dstew.payments.claims.validation.core.model.ValidationIssue;
@@ -45,6 +47,9 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.service.amendment.validation
 class ClaimAmendmentWarningLifecycleIntegrationTest
     extends AbstractAmendmentPipelineIntegrationTest {
 
+  private static final String FSP_WARNING_MESSAGE =
+      "The claim exceeds the Escape Case Threshold. An Escape Case Claim must be submitted for further costs to be paid.";
+
   @Test
   @DisplayName(
       "successful repricing persists returned warnings, supersedes obsolete ones, and keeps read counts consistent")
@@ -59,14 +64,13 @@ class ClaimAmendmentWarningLifecycleIntegrationTest
                 SUBMISSION_1_ID, CLAIM_2_ID, claim2.getVersion(), "other-claim-warning")));
     stubExternalValidationEndpoints();
 
-    ClaimAmendmentValidationStep warningStep =
-        state -> {
-          state.addWarnings(List.of(warning("WAR-001", "fresh-fsp-warning")));
-          return List.of();
-        };
+    mockServerClient.clear(request().withPath(FEE_CALCULATION), ClearType.EXPECTATIONS);
+    stubPost(FEE_CALCULATION, "fee-scheme/post-fee-calculation-with-warnings.json");
 
     ClaimAmendmentService service =
-        amendmentPipeline().replaceStep(AmendmentExternalValidationStep.class, warningStep).build();
+        amendmentPipeline()
+            .replaceStep(AmendmentExternalValidationStep.class, state -> List.of())
+            .build();
 
     ClaimAmendmentResult result = submitInNewTransaction(service, CLAIM_1_ID, pricingPayload());
 
@@ -91,9 +95,11 @@ class ClaimAmendmentWarningLifecycleIntegrationTest
     assertThat(claim1Warnings).hasSize(2);
     ValidationMessageLog freshWarning =
         claim1Warnings.stream()
-            .filter(log -> log.getDisplayMessage().equals("fresh-fsp-warning"))
+            .filter(log -> log.getDisplayMessage().equals(FSP_WARNING_MESSAGE))
             .findFirst()
             .orElseThrow();
+    assertThat(freshWarning.getMessageCode()).isEqualTo("WARIA3");
+    assertThat(freshWarning.getTechnicalMessage()).isEqualTo(FSP_WARNING_MESSAGE);
     assertThat(freshWarning.getSupersededByVersion()).isZero();
     assertThat(freshWarning.getVersion()).isEqualTo(committedClaimVersion);
     assertThat(claim1Warnings)
@@ -117,7 +123,7 @@ class ClaimAmendmentWarningLifecycleIntegrationTest
             .stream()
             .map(ValidationMessageWithClaimDetailsProjection::getDisplayMessage)
             .toList();
-    assertThat(normalReadMessages).containsExactly("fresh-fsp-warning");
+    assertThat(normalReadMessages).containsExactly(FSP_WARNING_MESSAGE);
 
     assertThat(warningLogsForClaim(CLAIM_2_ID))
         .singleElement()

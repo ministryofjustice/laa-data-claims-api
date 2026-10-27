@@ -31,9 +31,6 @@ Feature: Amendment final-save guard — commit-time OCC (@Version) protection
   #               (DSTEW-1751) and future DSTEW-1752 scenarios;
   #               Request-body shape — DSTEW-1754.
 
-  Background:
-    Given the amendments feature flag is enabled
-
   @smoke @DS1753_1
   Scenario: Happy path — no concurrent writer, commit succeeds and bumps @Version
     Given a fresh amendable claim on a legal-help submission at version 0
@@ -136,6 +133,5 @@ Feature: Amendment final-save guard — commit-time OCC (@Version) protection
     And claim.version equals 1
     And claim.is_amended is true
     And exactly one claim_amendment row was inserted for this claim
-
 
 

@@ -5,8 +5,8 @@
   "validationMessages": [
     {
       "type": "WARNING",
-      "code": "HIGH_COSTS",
-      "message": "Costs exceed typical range for this matter type, but are acceptable"
+      "code": "WARIA3",
+      "message": "The claim exceeds the Escape Case Threshold. An Escape Case Claim must be submitted for further costs to be paid."
     }
   ],
   "escapeCaseFlag": true,
@@ -31,4 +31,3 @@
     "boltOnFeeDetails": null
   }
 }
-
