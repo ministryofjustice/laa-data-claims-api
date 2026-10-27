@@ -33,7 +33,7 @@ inputs:
 outputs:
   git-ref:
     description: "Git ref resolved from the currently deployed image tag"
-    value: ${{ steps.resolve_ref.outputs.git-ref }}
+    value: ${{ steps.deployed.outputs.git-ref }}
   image:
     description: "Full currently deployed container image"
     value: ${{ steps.deployed.outputs.image }}
@@ -44,30 +44,30 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Get deployed version
-      id: deployed
-      uses: ./.github/actions/get_deployed_version
+    - name: Authenticate to cluster
+      uses: ministryofjustice/laa-reusable-github-actions/.github/actions/authenticate_to_cluster@2aa2676c3cd9876ec7037ee8b3d729d0306cb7c6
       with:
         kube-cert: ${{ inputs.kube-cert }}
         kube-token: ${{ inputs.kube-token }}
         kube-cluster: ${{ inputs.kube-cluster }}
         kube-namespace: ${{ inputs.kube-namespace }}
-        deployment: ${{ inputs.deployment }}
 
-    - name: Resolve deployed image tag to git ref
-      id: resolve_ref
-      uses: ./.github/actions/resolve_image_git_ref
-      with:
-        image-tag: ${{ steps.deployed.outputs.image-tag }}
-        image-prefix: ${{ inputs.image-prefix }}
-        git-tag-prefix: ${{ inputs.git-tag-prefix }}
+    - name: Get deployed version
+      id: deployed
+      shell: bash
+      env:
+        KUBE_NAMESPACE: ${{ inputs.kube-namespace }}
+        DEPLOYMENT: ${{ inputs.deployment }}
+        IMAGE_PREFIX: ${{ inputs.image-prefix }}
+        GIT_TAG_PREFIX: ${{ inputs.git-tag-prefix }}
+      run: bash "${GITHUB_ACTION_PATH}/get-deployed-git-ref.sh"
 
     - name: Show currently deployed version
       shell: bash
       env:
         DEPLOYED_IMAGE: ${{ steps.deployed.outputs.image }}
         DEPLOYED_TAG: ${{ steps.deployed.outputs.image-tag }}
-        RESOLVED_REF: ${{ steps.resolve_ref.outputs.git-ref }}
+        RESOLVED_REF: ${{ steps.deployed.outputs.git-ref }}
       run: |
         echo "Currently deployed:"
         echo "  $DEPLOYED_IMAGE"
