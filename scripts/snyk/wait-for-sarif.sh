@@ -23,34 +23,36 @@ if [ -z "$run_started_at" ] || [ "$run_started_at" = "null" ]; then
   exit 1
 fi
 
-# One Snyk scan uploads several analyses (one per SARIF run, each with its own category), so
-# collect the newest analysis of every category and wait until that set stops growing.
+# One Snyk scan uploads one SARIF file that GitHub splits into several analyses (one per SARIF run,
+# each with its own category, all sharing a sarif_id). Wait until every upload from this run reports
+# processing_status=complete, then report the newest analysis of each category.
 max_attempts=7
 delay=10
-previous=""
 for i in $(seq 1 "$max_attempts"); do
-  analysis_ids=$(gh api --method GET --paginate \
+  analyses=$(gh api --method GET --paginate \
     -H "Accept: application/vnd.github+json" \
     "/repos/$REPO/code-scanning/analyses" \
     -f ref="$REF" -f tool_name="Snyk Container" -f per_page=100 |
-    jq -sr --arg sha "$SHA" --arg started "$run_started_at" \
-      '[.[][] | select(.commit_sha == $sha and .created_at >= $started)] |
-       group_by(.category) | map(max_by(.created_at, .id).id) | sort | join(",")')
-  if [ -n "$analysis_ids" ] && [ "$analysis_ids" = "$previous" ]; then
+    jq -sc --arg sha "$SHA" --arg started "$run_started_at" \
+      '[.[][] | select(.commit_sha == $sha and .created_at >= $started)]')
+  complete=false
+  if [ "$(jq 'length' <<<"$analyses")" -gt 0 ]; then
+    complete=true
+    for sarif_id in $(jq -r '[.[].sarif_id] | unique | .[]' <<<"$analyses"); do
+      status=$(gh api "/repos/$REPO/code-scanning/sarifs/$sarif_id" --jq '.processing_status')
+      [ "$status" = "complete" ] || complete=false
+    done
+  fi
+  if [ "$complete" = true ]; then
+    analysis_ids=$(jq -r 'group_by(.category) | map(max_by(.created_at, .id).id) | sort | join(",")' <<<"$analyses")
     echo "analysis_ids=$analysis_ids" >> "$output_file"
     echo "SARIF analyses found on attempt $i"
     exit 0
   fi
-  previous="$analysis_ids"
   if [ "$i" -lt "$max_attempts" ]; then
-    echo "Attempt $i/$max_attempts: analyses not yet complete, waiting ${delay}s"
+    echo "Attempt $i/$max_attempts: SARIF processing not complete, waiting ${delay}s"
     sleep "$delay"
   fi
 done
-if [ -n "$previous" ]; then
-  echo "::warning::Snyk SARIF analyses were still arriving after $(((max_attempts - 1) * delay))s; reporting what has landed"
-  echo "analysis_ids=$previous" >> "$output_file"
-  exit 0
-fi
-echo "::warning::Fresh Snyk SARIF analysis not found after $(((max_attempts - 1) * delay))s; skipping alert report"
+echo "::warning::Fresh Snyk SARIF analysis not complete after $(((max_attempts - 1) * delay))s; skipping alert report"
 exit 1
