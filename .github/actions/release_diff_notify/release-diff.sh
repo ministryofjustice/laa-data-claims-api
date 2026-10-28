@@ -236,3 +236,5 @@ echo "Release diff:"
 echo
 
 cat "$MARKDOWN_FILE"
+
+

@@ -3,11 +3,12 @@ description: >
   Generates a PR-based release diff between a "from" and "to" git ref, and (if
   a Slack webhook is supplied and there's at least one PR to report) posts a
   summary to Slack with links to each PR and its Jira ticket (derived from the
-  PR title). Requires the calling job to have already checked out the
-  repository (fetch-depth: 0, fetch-tags: true) at the ref being diffed "to".
-  To diff against what was deployed immediately prior to a deployment, use
-  ./.github/actions/get_deployed_git_ref *before* deploying to capture
-  "from-ref", then call this action *after* the deployment succeeds.
+  PR title). Requires the calling job to check out the target repository with
+  full history and tags (fetch-depth: 0, fetch-tags: true), with both from-ref
+  and to-ref available locally.
+  To diff against what was deployed immediately prior to a deployment, call
+  get_deployed_git_ref *before* deploying to capture "from-ref", then call
+  this action *after* the deployment succeeds.
 
 inputs:
   from-ref:
@@ -63,10 +64,12 @@ runs:
       id: release_diff
       if: inputs.from-ref != ''
       continue-on-error: true
-      uses: ./.github/actions/release_diff
-      with:
-        from: ${{ inputs.from-ref }}
-        to: ${{ inputs.to-ref }}
+      shell: bash
+      env:
+        FROM_REF: ${{ inputs.from-ref }}
+        TO_REF: ${{ inputs.to-ref }}
+        GH_TOKEN: ${{ github.token }}
+      run: bash "${GITHUB_ACTION_PATH}/release-diff.sh"
 
     - name: Show release diff
       if: inputs.from-ref != '' && steps.release_diff.outcome == 'success'
@@ -106,7 +109,7 @@ runs:
 
           TICKET_OUT=$(mktemp)
           TITLE="$title" GITHUB_OUTPUT="$TICKET_OUT" JIRA_BASE_URL="$JIRA_BASE_URL" \
-            .github/actions/extract_ticket_id/extract-ticket-id.sh > /dev/null
+            bash "${GITHUB_ACTION_PATH}/extract-ticket-id.sh" > /dev/null
           ticket_id=$(grep '^ticket-id=' "$TICKET_OUT" | cut -d= -f2-)
           ticket_url=$(grep '^ticket-url=' "$TICKET_OUT" | cut -d= -f2-)
           rm -f "$TICKET_OUT"
