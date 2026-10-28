@@ -9,4 +9,4 @@ jobs:
   lint-pr-title:
     permissions:
       pull-requests: read
-    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/lint-pr-title.yml@035ee98ca0047659f865532ea6234abd69529ee8 # v2.5.0
+    uses: ministryofjustice/laa-ccms-common-workflows/.github/workflows/lint-pr-title.yml@57f8d08c0cf807ea64fc121500669c4d3dada733 # v2.5.1
