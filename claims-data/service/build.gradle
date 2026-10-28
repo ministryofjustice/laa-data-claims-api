@@ -47,8 +47,8 @@ def versions = [
         // com.fasterxml.jackson.core:jackson-databind / jackson-core are pinned explicitly
         // (below) in addition to importing the jackson-bom platform, to guarantee they win
         // over the lower version recommended by Spring Boot's own BOM (spring-boot-dependencies).
-        jacksonBom      : '2.21.7',
-        jacksonToolsBom : '3.1.7',
+        jacksonBom      : '2.21.8',
+        jacksonToolsBom : '3.1.8',
         claimvalidator  : '1.5.10'
 ]
 
