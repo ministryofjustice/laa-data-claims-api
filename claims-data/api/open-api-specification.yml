@@ -1641,6 +1641,8 @@ components:
         - CREATED
         - READY_FOR_VALIDATION
         - VALIDATION_IN_PROGRESS
+        - READY_FOR_FINAL_VALIDATION
+        - FINAL_VALIDATION_IN_PROGRESS
         - VALIDATION_SUCCEEDED
         - VALIDATION_FAILED
         - REPLACED
@@ -1649,6 +1651,8 @@ components:
         Processing status indicator tracking the lifecycle stage of the submission from receipt through to completion.
         VALIDATED_PENDING_APPROVAL indicates the submission passed initial validation and is held for provider review
         before Final Submit; its claims are not yet accepted (VALID).
+        READY_FOR_FINAL_VALIDATION indicates the provider has approved the submission and final validation has been
+        requested; FINAL_VALIDATION_IN_PROGRESS indicates the event service has begun that final validation.
     submission_claim:
       type: object
       description: Claim UUID and status
@@ -1752,6 +1756,22 @@ components:
           type: string
           format: date-time
           description: Date and time the submission was submitted
+        approved_on:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          description: >
+            Date and time the provider approved the submission for final validation. Null until
+            the submission is approved. Set by the API on approval and not accepted from a request
+            body.
+        approved_by_user_id:
+          type: string
+          readOnly: true
+          nullable: true
+          description: >
+            The user who approved the submission for final validation. Null until the submission
+            is approved. Set by the API on approval and not accepted from a request body.
         created_by_user_id:
           type: string
           description: The id of the user who created the submission.
