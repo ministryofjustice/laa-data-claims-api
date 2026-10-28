@@ -27,7 +27,7 @@ jobs:
           fetch-tags: true
       - name: Compute version
         id: compute
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/compute-version@035ee98ca0047659f865532ea6234abd69529ee8 # v2.5.0
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/compute-version@57f8d08c0cf807ea64fc121500669c4d3dada733 # v2.5.1
       - name: Compute snapshot version
         id: version
         shell: bash
@@ -183,7 +183,7 @@ jobs:
 
       - name: Can I deploy UAT?
         id: can_i_deploy_uat
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@035ee98ca0047659f865532ea6234abd69529ee8 # v2.5.0
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-can-i-deploy@57f8d08c0cf807ea64fc121500669c4d3dada733 # v2.5.1
         with:
           pacticipant: 'laa-data-claims-api'
           environment: ${{ steps.extract_release_name_uat.outputs.release-name }}
@@ -208,7 +208,7 @@ jobs:
 
       - name: Record UAT deployment to pact broker
         id: record_uat_deployment
-        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@035ee98ca0047659f865532ea6234abd69529ee8 # v2.5.0
+        uses: ministryofjustice/laa-ccms-common-workflows/.github/actions/pact-record-deployment@57f8d08c0cf807ea64fc121500669c4d3dada733 # v2.5.1
         with:
           pacticipant: 'laa-data-claims-api'
           environment: ${{ steps.extract_release_name_uat.outputs.release-name }}
