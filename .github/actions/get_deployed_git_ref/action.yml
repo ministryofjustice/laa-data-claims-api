@@ -4,7 +4,9 @@ description: >
   resolves it back to a git ref (tag or commit SHA). Intended to be called
   *before* a deployment, so the resulting ref can be used afterwards (once the
   deployment has succeeded) as the "from" side of a release diff - capturing
-  what was live immediately prior to this deployment.
+  what was live immediately prior to this deployment. The calling job must
+  check out the target repository with full history and tags (fetch-depth: 0,
+  fetch-tags: true) so the resolved ref can be verified locally.
 
 inputs:
   kube-cert:

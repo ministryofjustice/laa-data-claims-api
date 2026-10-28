@@ -3,8 +3,9 @@ description: >
   Generates a PR-based release diff between a "from" and "to" git ref, and (if
   a Slack webhook is supplied and there's at least one PR to report) posts a
   summary to Slack with links to each PR and its Jira ticket (derived from the
-  PR title). Requires the calling job to have already checked out the
-  repository (fetch-depth: 0, fetch-tags: true) at the ref being diffed "to".
+  PR title). Requires the calling job to check out the target repository with
+  full history and tags (fetch-depth: 0, fetch-tags: true), with both from-ref
+  and to-ref available locally.
   To diff against what was deployed immediately prior to a deployment, call
   get_deployed_git_ref *before* deploying to capture "from-ref", then call
   this action *after* the deployment succeeds.
