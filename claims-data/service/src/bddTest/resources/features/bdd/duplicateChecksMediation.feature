@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @duplicateChecks
 @mediation
 Feature: Duplicate checks - Mediation (API)
@@ -16,7 +16,7 @@ Feature: Duplicate checks - Mediation (API)
   # 1. Smoke: a generated Mediation submission with two claims is accepted.
   # ===========================================================================
   @DCM_1
-  @smoke
+  @smoke @Regression
   Scenario Outline: A generated Mediation <format> submission is accepted
     Given a Mediation "<format>" submission with claims
       | feeCode |

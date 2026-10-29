@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @assessment
 @stageDisbursement
 @dstew-1520
@@ -66,7 +66,7 @@ Feature: Stage Disbursement assessment support on POST /assessments (BC-551)
     And claim "SD" exists with a Stage Disbursement fee code and status VALID
     And claim "SD" has not formally escaped
 
-  @smoke @DS1520_1
+  @smoke @DS1520_1 @Regression
   Scenario Outline: Eligible Stage Disbursement fee code + explicit type/reason is accepted
     Given claim "SD" has fee code "<feeCode>"
     When AaBC POSTs an assessment for claim "SD" with

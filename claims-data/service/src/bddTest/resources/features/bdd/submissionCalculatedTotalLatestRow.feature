@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @submission
 @readSide
 @dstew-1644
@@ -30,7 +30,7 @@ Feature: Submission calculated total — sum only the latest calculated_fee_deta
   Background:
     Given the submission read endpoint is available
 
-  @smoke @DS1644_1
+  @smoke @DS1644_1 @Regression
   Scenario: Regression — single-row-per-claim submissions keep today's calculated total
     Given a submission exists with the following claims
       | claimRef | calc_fee_total_amount |
@@ -68,7 +68,7 @@ Feature: Submission calculated total — sum only the latest calculated_fee_deta
     Then the submission calculated total is 175.00
     And the calculated_fee_detail row with total_amount 100.00 did not contribute to the total
 
-  @DS1644_4
+  @DS1644_4 @Regression
   Scenario: Successful pricing amendment — submission total reflects post-amendment value
     Given a submission exists with a single claim "P"
     And claim "P" had an original calculated_fee_detail row with total_amount 100.00 dated "2026-04-01T10:00:00Z"

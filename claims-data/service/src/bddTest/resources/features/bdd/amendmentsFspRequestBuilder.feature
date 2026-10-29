@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @amendments
 @dstew-1759
 Feature: Amendment FSP request builder — built from post-amendment claim state
@@ -51,7 +51,7 @@ Feature: Amendment FSP request builder — built from post-amendment claim state
   # AC1 + AC2 — the worked example: a changed FSP-input field (case_start_date)
   # carries the post-amendment value; an omitted FSP-input field (fee_code) carries
   # the current stored value.
-  @smoke @DS1759_1
+  @smoke @DS1759_1 @Regression
   Scenario: Pricing amendment — changed FSP-input field uses the post-amendment value; omitted field uses the stored value
     Given a fresh amendable claim on a legal-help submission at version 0
     And the PDA service will respond "authorised" within the amendment-path timeout

@@ -97,12 +97,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Run BDD test suite
+      - name: Run BDD @Regression pack
         uses: ./.github/actions/bdd-test
         with:
           java-version: *JAVA_VERSION
           java-distribution: *JDK_DISTRIBUTION
           gh-packages-token: ${{ secrets.GH_PACKAGES_TOKEN }}
+          tags: '@Regression'
 
   helm-template-check:
     runs-on: ubuntu-latest

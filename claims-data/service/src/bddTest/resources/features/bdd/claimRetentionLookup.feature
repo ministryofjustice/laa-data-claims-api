@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @claims
 @retentionLookup
 
@@ -37,7 +37,7 @@ Feature: Claim retention lookup
     Then the retention response contains 0 matching claims in 0 pages
     And the retention response contains the expected matching claims
 
-  @retentionLookupSingleMatch
+  @retentionLookupSingleMatch @Regression
   Scenario: One matching claim is returned with retention details
     Given 1 VALID claim matches the retention lookup criteria
     When I look up the matching retention claims
