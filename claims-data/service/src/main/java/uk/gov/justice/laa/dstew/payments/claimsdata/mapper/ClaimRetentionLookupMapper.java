@@ -28,13 +28,15 @@ public interface ClaimRetentionLookupMapper {
 
   /**
    * Maps the persisted claim status onto the narrow status exposed by this endpoint. The repository
-   * query filters to VALID only, so any other value indicates the query and the response contract
-   * have drifted apart and must fail loudly rather than be silently reported as VALID.
+   * query filters to VALID and VOID only, so any other value indicates the query and the response
+   * contract have drifted apart and must fail loudly rather than be silently reported as another
+   * status.
    *
    * @param status the persisted claim status
    * @return the retention lookup status
    */
   @ValueMapping(source = "VALID", target = "VALID")
+  @ValueMapping(source = "VOID", target = "VOID")
   @ValueMapping(source = MappingConstants.ANY_REMAINING, target = MappingConstants.THROW_EXCEPTION)
   ClaimRetentionLookupClaimDetail.StatusEnum toRetentionStatus(ClaimStatus status);
 

@@ -47,23 +47,24 @@ public interface ClaimRepository
       UUID submissionId, ClaimStatus status, String updatedByUserId, Instant updatedOn);
 
   /**
-   * Retrieves paginated VALID claims for a given office code and unique file number (UFN). Returns
-   * claims sorted by most recent update first.
+   * Retrieves paginated VALID and VOID claims for a given office code and unique file number (UFN).
+   * Returns claims sorted by most recent update first.
    *
    * <p>Used for retention lookup with pagination support for data governance compliance. Only VALID
-   * status claims are returned; other statuses (INVALID, VOID, etc.) are excluded.
+   * and VOID status claims are returned; other statuses (INVALID, processing states, etc.) are
+   * excluded.
    *
    * @param officeAccountNumber the office account number from the submission
    * @param uniqueFileNumber the unique file number to search for
    * @param pageable pagination parameters (page index and size)
-   * @return page of VALID claims matching the composite key, ordered by updatedOn DESC
+   * @return page of VALID and VOID claims matching the composite key, ordered by updatedOn DESC
    */
   @Query(
       "SELECT c FROM Claim c "
           + "WHERE c.submission.officeAccountNumber = :officeAccountNumber "
           + "AND c.uniqueFileNumber = :uniqueFileNumber "
-          + "AND c.status = 'VALID' "
+          + "AND c.status IN ('VALID', 'VOID') "
           + "ORDER BY c.updatedOn DESC, c.id ASC")
-  Page<Claim> findValidByOfficeAccountNumberAndUniqueFileNumber(
+  Page<Claim> findRetentionClaimsByOfficeAccountNumberAndUniqueFileNumber(
       String officeAccountNumber, String uniqueFileNumber, Pageable pageable);
 }

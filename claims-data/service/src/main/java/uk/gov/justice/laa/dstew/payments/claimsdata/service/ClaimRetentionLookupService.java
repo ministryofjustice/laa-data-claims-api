@@ -25,8 +25,8 @@ public class ClaimRetentionLookupService {
   private final ClaimRetentionLookupValidator validator;
 
   /**
-   * Retrieves VALID claims for a given office code and unique file number (UFN) with pagination.
-   * Only claims with VALID status are returned; other statuses are excluded.
+   * Retrieves VALID and VOID claims for a given office code and unique file number (UFN) with
+   * pagination. Only claims with VALID or VOID status are returned; other statuses are excluded.
    *
    * <p>Results are sorted by updated_on in descending order (most recent first) with a
    * deterministic secondary sort by claim ID to ensure stable pagination across requests.
@@ -38,7 +38,7 @@ public class ClaimRetentionLookupService {
    * @param pageable pagination details (page index and size); unpaged requests fall back to page
    *     {@value PageableUtils#DEFAULT_PAGE_NUMBER} with size {@value
    *     PageableUtils#DEFAULT_PAGE_SIZE}
-   * @return a paginated response containing VALID claims matching the composite key
+   * @return a paginated response containing VALID and VOID claims matching the composite key
    */
   @Transactional(readOnly = true)
   public ClaimRetentionLookupResultSet getClaimsRetentionLookup(
@@ -48,7 +48,7 @@ public class ClaimRetentionLookupService {
         PageableUtils.withDefaultPaginationAndSort(pageable, Sort.unsorted());
 
     Page<Claim> claimsPage =
-        claimRepository.findValidByOfficeAccountNumberAndUniqueFileNumber(
+        claimRepository.findRetentionClaimsByOfficeAccountNumberAndUniqueFileNumber(
             officeCode, ufn, effectivePageable);
 
     return mapper.toClaimRetentionLookupResultSet(claimsPage);
