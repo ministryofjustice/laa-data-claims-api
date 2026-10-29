@@ -26,15 +26,19 @@ fi
 # One Snyk scan uploads one SARIF file that GitHub splits into several analyses (one per SARIF run,
 # each with its own category, all sharing a sarif_id). Wait until every upload from this run reports
 # processing_status=complete, then report the newest analysis of each category.
-max_attempts=7
-delay=10
-for i in $(seq 1 "$max_attempts"); do
-  analyses=$(gh api --method GET --paginate \
+fetch_analyses() {
+  gh api --method GET --paginate \
     -H "Accept: application/vnd.github+json" \
     "/repos/$REPO/code-scanning/analyses" \
     -f ref="$REF" -f tool_name="Snyk Container" -f per_page=100 |
     jq -sc --arg sha "$SHA" --arg started "$run_started_at" \
-      '[.[][] | select(.commit_sha == $sha and .created_at >= $started)]')
+      '[.[][] | select(.commit_sha == $sha and .created_at >= $started)]'
+}
+
+max_attempts=7
+delay=10
+for i in $(seq 1 "$max_attempts"); do
+  analyses=$(fetch_analyses)
   complete=false
   if [ "$(jq 'length' <<<"$analyses")" -gt 0 ]; then
     complete=true
@@ -44,6 +48,8 @@ for i in $(seq 1 "$max_attempts"); do
     done
   fi
   if [ "$complete" = true ]; then
+    # Re-fetch so analyses ingested while the statuses were being checked are not missed.
+    analyses=$(fetch_analyses)
     analysis_ids=$(jq -r 'group_by(.category) | map(max_by(.created_at, .id).id) | sort | join(",")' <<<"$analyses")
     echo "analysis_ids=$analysis_ids" >> "$output_file"
     echo "SARIF analyses found on attempt $i"
