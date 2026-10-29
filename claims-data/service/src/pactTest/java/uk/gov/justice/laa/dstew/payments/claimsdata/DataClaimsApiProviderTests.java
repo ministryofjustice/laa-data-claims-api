@@ -580,7 +580,7 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   }
 
   private void stubRetentionLookupClaims(List<Claim> claims) {
-    when(claimRepository.findValidByOfficeAccountNumberAndUniqueFileNumber(
+    when(claimRepository.findRetentionClaimsByOfficeAccountNumberAndUniqueFileNumber(
             eq(RETENTION_LOOKUP_OFFICE_CODE), eq(RETENTION_LOOKUP_UFN), any(Pageable.class)))
         .thenAnswer(
             invocation -> {

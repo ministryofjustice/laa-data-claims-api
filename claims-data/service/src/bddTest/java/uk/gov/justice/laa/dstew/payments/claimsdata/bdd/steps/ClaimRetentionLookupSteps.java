@@ -50,6 +50,8 @@ public class ClaimRetentionLookupSteps {
 
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final List<Claim> seededClaims = new ArrayList<>();
+  private Submission submission;
+  private int nextLineNumber = 1;
   private JsonNode lastResponse;
 
   @Given("the retention lookup endpoint is available")
@@ -68,34 +70,53 @@ public class ClaimRetentionLookupSteps {
 
   @Given("{int} VALID claim(s) match(es) the retention lookup criteria")
   public void validClaimsMatchRetentionLookupCriteria(int count) {
-    step(
-        "persist " + count + " VALID claims with the retention lookup office code and UFN",
-        () -> {
-          Submission submission =
-              submissionRepository.saveAndFlush(
-                  Submission.builder()
-                      .id(Uuid7.timeBasedUuid())
-                      .officeAccountNumber(OFFICE_CODE)
-                      .submissionPeriod("JAN-2025")
-                      .areaOfLaw(AreaOfLaw.LEGAL_HELP)
-                      .status(SubmissionStatus.VALIDATION_SUCCEEDED)
-                      .createdByUserId(CREATED_BY)
-                      .providerUserId(CREATED_BY)
-                      .createdOn(Instant.now())
-                      .build());
+    seedClaims(count, ClaimStatus.VALID, true);
+  }
 
-          for (int lineNumber = 1; lineNumber <= count; lineNumber++) {
-            seededClaims.add(
+  @Given("{int} VOID claim(s) match(es) the retention lookup criteria")
+  public void voidClaimsMatchRetentionLookupCriteria(int count) {
+    seedClaims(count, ClaimStatus.VOID, true);
+  }
+
+  @Given("{int} {word} claim(s) with the same office code and UFN is/are excluded from retention")
+  public void excludedClaimsExist(int count, String status) {
+    seedClaims(count, ClaimStatus.valueOf(status), false);
+  }
+
+  private void seedClaims(int count, ClaimStatus status, boolean expectedInResponse) {
+    step(
+        "persist " + count + " " + status + " claims with the retention lookup office code and UFN",
+        () -> {
+          if (submission == null) {
+            submission =
+                submissionRepository.saveAndFlush(
+                    Submission.builder()
+                        .id(Uuid7.timeBasedUuid())
+                        .officeAccountNumber(OFFICE_CODE)
+                        .submissionPeriod("JAN-2025")
+                        .areaOfLaw(AreaOfLaw.LEGAL_HELP)
+                        .status(SubmissionStatus.VALIDATION_SUCCEEDED)
+                        .createdByUserId(CREATED_BY)
+                        .providerUserId(CREATED_BY)
+                        .createdOn(Instant.now())
+                        .build());
+          }
+
+          for (int i = 0; i < count; i++) {
+            Claim claim =
                 claimRepository.saveAndFlush(
                     Claim.builder()
                         .id(Uuid7.timeBasedUuid())
                         .submission(submission)
                         .uniqueFileNumber(UFN)
-                        .status(ClaimStatus.VALID)
-                        .lineNumber(lineNumber)
+                        .status(status)
+                        .lineNumber(nextLineNumber++)
                         .matterTypeCode("RETENTION")
                         .createdByUserId(CREATED_BY)
-                        .build()));
+                        .build());
+            if (expectedInResponse) {
+              seededClaims.add(claim);
+            }
           }
         });
   }
@@ -158,7 +179,7 @@ public class ClaimRetentionLookupSteps {
             JsonNode actual = content.get(index);
 
             assertThat(actual.path("claim_id").asText()).isEqualTo(expected.getId().toString());
-            assertThat(actual.path("status").asText()).isEqualTo(ClaimStatus.VALID.name());
+            assertThat(actual.path("status").asText()).isEqualTo(expected.getStatus().name());
             assertThat(Instant.parse(actual.path("created_on").asText()))
                 .isEqualTo(expected.getCreatedOn());
             assertThat(Instant.parse(actual.path("updated_on").asText()))
