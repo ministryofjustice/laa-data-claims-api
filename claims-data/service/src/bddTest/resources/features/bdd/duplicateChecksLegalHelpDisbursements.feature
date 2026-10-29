@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @duplicateChecks
 @disbursements
 Feature: Duplicate checks - Legal Help - Disbursements (API)
@@ -16,7 +16,7 @@ Feature: Duplicate checks - Legal Help - Disbursements (API)
   # ===========================================================================
   # 1. Two submissions more than N months apart are both accepted end-to-end.
   # ===========================================================================
-  @DCLHD_1
+  @DCLHD_1 @Regression
   Scenario Outline: Two disbursement submissions more than <monthsDifference> months apart are both accepted
     Given two Legal Help "<format>" submissions for office "<office>", <monthsDifference> months apart, with the following claims
       | ucn   | feeCode1 | feeCode2 | ufn   |

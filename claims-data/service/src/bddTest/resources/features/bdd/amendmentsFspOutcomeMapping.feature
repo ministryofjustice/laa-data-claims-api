@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @amendments
 @dstew-1761
 Feature: Amendment FSP outcome mapping
@@ -34,6 +34,7 @@ Feature: Amendment FSP outcome mapping
   #   * Correlation-id / structured-log scraping for support detail — not observable from this harness;
   #     the user-safe-message-without-payload-leak half of that AC IS asserted (no-payload-leak below).
 
+  @DS1761_1
   Scenario: FSP business validation failure rejects the amendment and surfaces the FSP message
     Given a fresh amendable claim on a legal-help submission at version 0
     And the PDA service will respond "authorised" within the amendment-path timeout
@@ -46,6 +47,7 @@ Feature: Amendment FSP outcome mapping
     And no FSP-derived calculated_fee_detail row was inserted for this claim by this attempt
     And no amendment event was recorded for this claim by this attempt
 
+  @DS1761_2
   Scenario: Multiple FSP validation failures surface every FSP message
     Given a fresh amendable claim on a legal-help submission at version 0
     And the PDA service will respond "authorised" within the amendment-path timeout
@@ -59,6 +61,7 @@ Feature: Amendment FSP outcome mapping
     And no FSP-derived calculated_fee_detail row was inserted for this claim by this attempt
     And no amendment event was recorded for this claim by this attempt
 
+  @DS1761_3
   Scenario: FSP connection drop maps to a controlled technical failure and persists nothing
     Given a fresh amendable claim on a legal-help submission at version 0
     And the PDA service will respond "authorised" within the amendment-path timeout
@@ -70,6 +73,7 @@ Feature: Amendment FSP outcome mapping
     And no FSP-derived calculated_fee_detail row was inserted for this claim by this attempt
     And no amendment event was recorded for this claim by this attempt
 
+  @DS1761_4
   Scenario: FSP malformed response body maps to a controlled technical failure and persists nothing
     Given a fresh amendable claim on a legal-help submission at version 0
     And the PDA service will respond "authorised" within the amendment-path timeout
@@ -80,6 +84,7 @@ Feature: Amendment FSP outcome mapping
     And no FSP-derived calculated_fee_detail row was inserted for this claim by this attempt
     And no amendment event was recorded for this claim by this attempt
 
+  @DS1761_5
   Scenario: FSP external-service timeout maps to a controlled technical failure with a single attempt
     Given a fresh amendable claim on a legal-help submission at version 0
     And the PDA service will respond "authorised" within the amendment-path timeout
@@ -91,6 +96,7 @@ Feature: Amendment FSP outcome mapping
     And no FSP-derived calculated_fee_detail row was inserted for this claim by this attempt
     And no amendment event was recorded for this claim by this attempt
 
+  @DS1761_6
   Scenario: Technical failure returns a safe user message without leaking the FSP payload
     Given a fresh amendable claim on a legal-help submission at version 0
     And the PDA service will respond "authorised" within the amendment-path timeout
@@ -103,6 +109,7 @@ Feature: Amendment FSP outcome mapping
     And no FSP-derived calculated_fee_detail row was inserted for this claim by this attempt
     And no amendment event was recorded for this claim by this attempt
 
+  @DS1761_7 @Regression
   Scenario: Successful FSP response maps to an accepted amendment, not a failure
     Given a fresh amendable claim on a legal-help submission at version 0
     And the PDA service will respond "authorised" within the amendment-path timeout

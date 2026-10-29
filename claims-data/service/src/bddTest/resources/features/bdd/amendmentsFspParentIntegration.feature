@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @amendments
 @fsp
 @dstew-1595

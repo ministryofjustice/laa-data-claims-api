@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @duplicateChecks
 Feature: Duplicate checks - Legal Help (API)
 
@@ -17,7 +17,7 @@ Feature: Duplicate checks - Legal Help (API)
   # ===========================================================================
   # 1. Smoke: a static Legal Help fixture is accepted end-to-end.
   # ===========================================================================
-  @smoke_single @DCLH_1
+  @smoke_single @DCLH_1 @Regression
   Scenario: A Legal Help submission is accepted
     Given a Legal Help submission from file "test_upload_files/csv/outcomes.csv" for office "0U099L"
     When I submit it
@@ -40,7 +40,7 @@ Feature: Duplicate checks - Legal Help (API)
   # ===========================================================================
   # 3. A single generated Legal Help submission with two claims is accepted.
   # ===========================================================================
-  @DCLH_3
+  @DCLH_3 @Regression
   Scenario Outline: A generated <format> submission is accepted
     Given a Legal Help "<format>" submission with claims
       | feeCode |
@@ -280,7 +280,7 @@ Feature: Duplicate checks - Legal Help (API)
   #     Help claim can be resubmitted 2 months later and is accepted.
   # ===========================================================================
   @DCLH_14
-  @void
+  @void @Regression
   Scenario: Voiding the first claim allows the same Legal Help claim to be resubmitted 2 months later
     Given two Legal Help "csv" submissions for office "0P322F", 2 months apart, with the following claims
       | ucn             | feeCode1 | feeCode2 | ufn        |

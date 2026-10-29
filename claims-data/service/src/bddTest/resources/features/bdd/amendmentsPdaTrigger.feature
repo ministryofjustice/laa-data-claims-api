@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @amendments
 @classifier
 @dstew-1772
@@ -26,7 +26,7 @@ Feature: Amendment changed-field classifier — PDA trigger (pda_relevant)
   # pda_relevant = true
   # ============================================================================
 
-  @smoke @DS1772_1
+  @smoke @DS1772_1 @Regression
   Scenario: PDA trigger — Office Code change
     Given an original claim exists with officeCode "OFC-001", feeCode "FEE-A" and resolved effectiveDate "2026-04-01"
     And an amendment updates the claim to officeCode "OFC-002"
