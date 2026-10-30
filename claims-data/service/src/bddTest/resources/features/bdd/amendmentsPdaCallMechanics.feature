@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @amendments
 @pda
 @dstew-1773
@@ -26,7 +26,7 @@ Feature: PDA re-validation — outbound calls and single-attempt timeout
   Background:
     Given the amendment PDA trigger will report "pda_relevant" as "true"
 
-  @PDA_4
+  @PDA_4 @Regression
   Scenario: Successful PDA response inside the configured amendment-path timeout is returned as-is
     # Gap: integration suite has no success-under-budget scenario on the amendment route.
     Given a PDA-relevant amendable claim is provisioned
