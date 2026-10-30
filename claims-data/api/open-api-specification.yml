@@ -776,12 +776,14 @@ paths:
         - Submissions
       summary: Update submission status
       description: >
-        Updates an existing submission. Setting `READY_FOR_FINAL_VALIDATION` is accepted only
-        from `VALIDATED_PENDING_APPROVAL` and publishes an asynchronous final-validation event.
-        That transition additionally requires `office_account_number` to be supplied and to match
-        the office account number held against the submission, otherwise `403` is returned, and
-        requires `created_by_user_id` to identify the approving user. It writes only the submission
-        status and the approving user; any other field supplied alongside it is ignored.
+        Updates an existing submission. Setting `READY_FOR_FINAL_VALIDATION` from
+        `VALIDATED_PENDING_APPROVAL` publishes an asynchronous final-validation event. The request
+        requires `office_account_number` and `created_by_user_id` to identify the approving user;
+        a missing or blank value returns `400`. If the supplied office account number does not
+        match the one held against the submission, `403` is returned. Repeating a valid request
+        when the submission is already `READY_FOR_FINAL_VALIDATION` succeeds with `204` and does
+        not publish a duplicate event. This transition writes only the submission status and the
+        approving user; any other field supplied alongside it is ignored.
         Setting `FINAL_VALIDATION_IN_PROGRESS` is reserved for the event service once it begins
         final validation, and is accepted only from `READY_FOR_FINAL_VALIDATION` or from itself.
       parameters:
