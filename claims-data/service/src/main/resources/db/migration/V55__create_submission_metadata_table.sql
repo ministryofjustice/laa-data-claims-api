@@ -7,6 +7,8 @@ CREATE TABLE claims.submission_metadata (
     spreadsheet_version TEXT,
     spreadsheet_platform TEXT,
     source_file_format TEXT,
+    created_on TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_on TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT chk_submission_metadata_spreadsheet_version
         CHECK (spreadsheet_version ~ '^[0-9]{1,2}\.[0-9]{2}$'),
     CONSTRAINT chk_submission_metadata_spreadsheet_platform
