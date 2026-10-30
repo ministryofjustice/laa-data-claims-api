@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @claimHistory
 @dstew-1812
 Feature: Claim history timeline — ASSESSMENT & VOID events (single source, type split)
@@ -46,7 +46,7 @@ Feature: Claim history timeline — ASSESSMENT & VOID events (single source, typ
   #     GET /api/v1/claims/{claimId}/assessments
   #   * Banner precedence (Amended / Assessed / Voided) → AaBC UI logic
 
-  @smoke @DS1812_1
+  @smoke @DS1812_1 @Regression
   Scenario: ESCAPE_CASE_ASSESSMENT row appears as an ASSESSMENT event with type / outcome / reason metadata
     Given a claim exists with the following claims.assessment row
       | field              | value                        |

@@ -1,4 +1,4 @@
-@Regression
+@Full_Regression
 @amendments
 @duplicateCheck
 @dstew-1769
@@ -68,7 +68,7 @@ Feature: Amendment duplicate validation - reuse existing rules against post-amen
   # Post-amendment state drives duplicate detection
   # ============================================================================
 
-  @smoke @DS1769_1
+  @smoke @DS1769_1 @Regression
   Scenario: Post-amendment state does not duplicate any other claim - amendment proceeds past this gate
     Given an original claim exists with UCN "14091962/T/PERS" and UFN "010725/123" and area of law "LEGAL_HELP"
     And no other claim exists whose duplicate key matches the post-amendment state
