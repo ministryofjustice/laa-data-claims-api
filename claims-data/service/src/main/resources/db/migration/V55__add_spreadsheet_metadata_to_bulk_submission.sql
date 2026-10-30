@@ -1,19 +1,25 @@
-ALTER TABLE claims.bulk_submission
-    ADD COLUMN spreadsheet_version TEXT,
-    ADD COLUMN spreadsheet_platform TEXT,
-    ADD COLUMN source_file_format TEXT,
-    ADD CONSTRAINT chk_bulk_submission_spreadsheet_version
+CREATE TABLE claims.submission_metadata (
+    id UUID PRIMARY KEY,
+    bulk_submission_id UUID UNIQUE
+        REFERENCES claims.bulk_submission (id) ON DELETE CASCADE,
+    submission_id UUID UNIQUE
+        REFERENCES claims.submission (id) ON DELETE CASCADE,
+    spreadsheet_version TEXT,
+    spreadsheet_platform TEXT,
+    source_file_format TEXT,
+    CONSTRAINT chk_submission_metadata_spreadsheet_version
         CHECK (spreadsheet_version ~ '^[0-9]{1,2}\.[0-9]{2}$'),
-    ADD CONSTRAINT chk_bulk_submission_spreadsheet_platform
+    CONSTRAINT chk_submission_metadata_spreadsheet_platform
         CHECK (spreadsheet_platform IN ('WINDOWS', 'MAC', 'OTHER')),
-    ADD CONSTRAINT chk_bulk_submission_source_file_format
-        CHECK (source_file_format IN ('CSV', 'TXT', 'XML'));
+    CONSTRAINT chk_submission_metadata_source_file_format
+        CHECK (source_file_format IN ('CSV', 'TXT', 'XML', 'ONLINE'))
+);
 
-COMMENT ON COLUMN claims.bulk_submission.spreadsheet_version
+COMMENT ON COLUMN claims.submission_metadata.spreadsheet_version
     IS 'Spreadsheet version declared in the uploaded file; NULL means undeclared.';
 
-COMMENT ON COLUMN claims.bulk_submission.spreadsheet_platform
+COMMENT ON COLUMN claims.submission_metadata.spreadsheet_platform
     IS 'Spreadsheet platform declared in the uploaded file; NULL means undeclared.';
 
-COMMENT ON COLUMN claims.bulk_submission.source_file_format
-    IS 'Source file format resolved at upload; NULL means undeclared.';
+COMMENT ON COLUMN claims.submission_metadata.source_file_format
+    IS 'CSV, TXT or XML for file uploads; ONLINE for fileless submissions; NULL means undeclared.';
