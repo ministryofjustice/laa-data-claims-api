@@ -958,7 +958,7 @@ paths:
       summary: Get claims retention lookup data
       description: |
         Retrieves claims data for a given office code and unique file number (UFN).
-        Returns only VALID status claims with minimal retention-relevant fields for data governance.
+        Returns only VALID and VOID status claims with minimal retention-relevant fields for data governance.
         No PII is included in the response.
         Results are paginated using zero-based page index and page size (defaults: page=0, size=20).
         Results always use the fixed order updated_on descending, then claim_id ascending.
@@ -984,7 +984,7 @@ paths:
         - $ref: '#/components/parameters/sizeParam'
       responses:
         '200':
-          description: Claims retrieved successfully. Returns a paginated array of VALID claims matching office_code and ufn. If no matching claims exist, returns an empty content array with pagination metadata.
+          description: Claims retrieved successfully. Returns a paginated array of VALID and VOID claims matching office_code and ufn. If no matching claims exist, returns an empty content array with pagination metadata.
           content:
             application/json:
               schema:

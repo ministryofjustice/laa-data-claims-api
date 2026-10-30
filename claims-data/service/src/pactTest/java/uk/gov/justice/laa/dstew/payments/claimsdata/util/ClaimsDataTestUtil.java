@@ -427,6 +427,10 @@ public class ClaimsDataTestUtil {
   }
 
   public static Claim getRetentionLookupClaim(int index) {
+    return getRetentionLookupClaim(index, ClaimStatus.VALID);
+  }
+
+  public static Claim getRetentionLookupClaim(int index, ClaimStatus status) {
     if (index < 0) {
       throw new IllegalArgumentException("index must not be negative");
     }
@@ -442,7 +446,7 @@ public class ClaimsDataTestUtil {
                 .officeAccountNumber(RETENTION_LOOKUP_OFFICE_CODE)
                 .build())
         .uniqueFileNumber(RETENTION_LOOKUP_UFN)
-        .status(ClaimStatus.VALID)
+        .status(status)
         .lineNumber(index + 1)
         .matterTypeCode(MATTER_TYPE_CODE)
         .createdOn(Instant.parse("2023-09-28T12:00:00Z"))

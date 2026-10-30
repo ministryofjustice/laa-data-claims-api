@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -201,9 +202,9 @@ public class ClaimRetentionLookupIntegrationTest extends AbstractIntegrationTest
   @ParameterizedTest
   @EnumSource(
       value = ClaimStatus.class,
-      names = {"INVALID", "VOID", "READY_TO_PROCESS", "VALIDATED_PENDING_APPROVAL"})
-  @DisplayName("Should filter out every non-VALID retention status")
-  void testFiltersOutNonValidClaims(ClaimStatus excludedStatus) throws Exception {
+      names = {"INVALID", "READY_TO_PROCESS", "VALIDATED_PENDING_APPROVAL"})
+  @DisplayName("Should filter out every status other than VALID and VOID")
+  void testFiltersOutNonRetentionStatuses(ClaimStatus excludedStatus) throws Exception {
     createTestClaims(5, ClaimStatus.VALID);
     createTestClaims(3, excludedStatus);
 
@@ -225,6 +226,60 @@ public class ClaimRetentionLookupIntegrationTest extends AbstractIntegrationTest
     assertThat(response.getContent())
         .allMatch(
             claim -> ClaimRetentionLookupClaimDetail.StatusEnum.VALID.equals(claim.getStatus()));
+  }
+
+  @Test
+  @DisplayName("Should return VALID and VOID claims with their actual status and exclude the rest")
+  void testReturnsValidAndVoidClaimsOnly() throws Exception {
+    Claim valid = saveClaim(ClaimStatus.VALID);
+    Claim voided = saveClaim(ClaimStatus.VOID);
+    saveClaim(ClaimStatus.INVALID);
+    saveClaim(ClaimStatus.READY_TO_PROCESS);
+    saveClaim(ClaimStatus.VALIDATED_PENDING_APPROVAL);
+
+    MvcResult result =
+        mockMvc
+            .perform(
+                get(RETENTION_LOOKUP_ENDPOINT)
+                    .param("office_code", OFFICE_ACCOUNT_NUMBER)
+                    .param("ufn", UNIQUE_FILE_NUMBER)
+                    .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                    .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.total_elements").value(2))
+            .andReturn();
+
+    ClaimRetentionLookupResultSet response =
+        OBJECT_MAPPER.readValue(
+            result.getResponse().getContentAsString(), ClaimRetentionLookupResultSet.class);
+    assertThat(response.getContent())
+        .extracting(
+            ClaimRetentionLookupClaimDetail::getClaimId, ClaimRetentionLookupClaimDetail::getStatus)
+        .containsExactlyInAnyOrder(
+            tuple(valid.getId(), ClaimRetentionLookupClaimDetail.StatusEnum.VALID),
+            tuple(voided.getId(), ClaimRetentionLookupClaimDetail.StatusEnum.VOID));
+  }
+
+  @Test
+  @DisplayName("Should paginate VALID and VOID claims together")
+  void testPaginatesMixedValidAndVoidClaims() throws Exception {
+    createTestClaims(15, ClaimStatus.VALID);
+    createTestClaims(10, ClaimStatus.VOID);
+
+    mockMvc
+        .perform(
+            get(RETENTION_LOOKUP_ENDPOINT)
+                .param("office_code", OFFICE_ACCOUNT_NUMBER)
+                .param("ufn", UNIQUE_FILE_NUMBER)
+                .param("page", "1")
+                .param("size", "20")
+                .header(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.total_elements").value(25))
+        .andExpect(jsonPath("$.total_pages").value(2))
+        .andExpect(jsonPath("$.number").value(1))
+        .andExpect(jsonPath("$.content.length()").value(5));
   }
 
   @Test

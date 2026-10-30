@@ -3,8 +3,8 @@
 claim_retention_lookup_result_set:
   type: object
   description: |
-    Paginated response containing VALID claims matching the office_code and UFN composite key.
-    Returns empty content when no VALID claims match the composite key or requested page.
+    Paginated response containing VALID and VOID claims matching the office_code and UFN composite key.
+    Returns empty content when no VALID or VOID claims match the composite key or requested page.
   required:
     - content
     - total_pages
@@ -15,7 +15,7 @@ claim_retention_lookup_result_set:
     content:
       type: array
       description: |
-        Minimal VALID claim details ordered by updated_on descending, then claim_id ascending.
+        Minimal VALID and VOID claim details ordered by updated_on descending, then claim_id ascending.
       items:
         $ref: '#/claim_retention_lookup_claim_detail'
     total_pages:
@@ -46,7 +46,8 @@ claim_retention_lookup_claim_detail:
       type: string
       enum:
         - VALID
-      description: Claim status. Only VALID claims are returned.
+        - VOID
+      description: Claim status. Only VALID and VOID claims are returned.
     created_on:
       type: string
       format: date-time
