@@ -74,6 +74,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Assessment;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Claim;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.GovernmentDepartmentRef;
 import uk.gov.justice.laa.dstew.payments.claimsdata.entity.RequestedByReferenceEntity;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.Submission;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionNotFoundException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.BulkSubmissionValidationException;
 import uk.gov.justice.laa.dstew.payments.claimsdata.exception.ClaimBadRequestException;
@@ -87,6 +88,7 @@ import uk.gov.justice.laa.dstew.payments.claimsdata.model.CreateBulkSubmission20
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200Response;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmission200ResponseDetails;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.GetBulkSubmissionStatusById200Response;
+import uk.gov.justice.laa.dstew.payments.claimsdata.model.SubmissionStatus;
 import uk.gov.justice.laa.dstew.payments.claimsdata.model.ValidationMessageType;
 import uk.gov.justice.laa.dstew.payments.claimsdata.repository.projection.ClaimHistoryPage;
 
@@ -157,10 +159,13 @@ public class DataClaimsApiProviderTests extends AbstractProviderPactTests {
   }
 
   @State("the system is ready to update a submission")
-  public void theSystemIsReadyToUpdateASubmission() {
+  public void theSystemIsReadyToUpdateASubmission(Map<String, Object> parameters) {
     log.info("Setting up state: the system is ready to update a submission");
-    when(submissionRepository.findByIdAndLockForUpdate(any()))
-        .thenReturn(Optional.of(getSubmission()));
+    Submission submission = getSubmission();
+    if (parameters.containsKey("status")) {
+      submission.setStatus(SubmissionStatus.fromValue((String) parameters.get("status")));
+    }
+    when(submissionRepository.findByIdAndLockForUpdate(any())).thenReturn(Optional.of(submission));
     when(submissionRepository.update(any())).thenReturn(1L);
   }
 
