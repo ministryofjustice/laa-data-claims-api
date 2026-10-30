@@ -2,8 +2,10 @@ package uk.gov.justice.laa.dstew.payments.claimsdata.runner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,6 +16,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import uk.gov.justice.laa.dstew.payments.claimsdata.controller.AbstractIntegrationTest;
+import uk.gov.justice.laa.dstew.payments.claimsdata.entity.SubmissionMetadata;
+import uk.gov.justice.laa.dstew.payments.claimsdata.repository.SubmissionMetadataRepository;
 
 @SpringBootTest(properties = "replication.summary.enabled=true")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -22,10 +26,13 @@ public class ReplicationSummaryRunnerIntegrationTest extends AbstractIntegration
 
   private static final int BULK_SUBMISSION_INDEX = 1;
   private static final int SUBMISSION_INDEX = 8;
-  private static final int REPLICATED_TABLES_COUNT = 9;
+  private static final int SUBMISSION_METADATA_INDEX = 9;
+  private static final int REPLICATED_TABLES_COUNT = 10;
   @Autowired private JdbcTemplate jdbcTemplate;
 
   @Autowired private ReplicationSummaryRunner runner;
+
+  @Autowired private SubmissionMetadataRepository submissionMetadataRepository;
 
   @BeforeEach
   void resetDatabase() {
@@ -62,6 +69,16 @@ public class ReplicationSummaryRunnerIntegrationTest extends AbstractIntegration
          'OA003', 'APR-2025', 'CRIME_LOWER', 'VALIDATION_SUCCEEDED', 'CSN001', NULL, FALSE, 1,
          NULL, 'test_user', NOW() - interval '1 day', NOW() - interval '1 day', 'test provider user');
     """);
+
+    jdbcTemplate.update(
+        """
+        INSERT INTO claims.submission_metadata (id, submission_id, created_on, updated_on)
+        VALUES
+            ('33333333-3333-3333-3333-333333333331', '22222222-2222-2222-2222-222222222222',
+             NOW() - interval '3 day', NOW() - interval '1 day'),
+            ('33333333-3333-3333-3333-333333333332', '22222222-2222-2222-2222-222222222223',
+             NOW() - interval '4 day', NOW() - interval '2 day');
+        """);
   }
 
   /**
@@ -92,6 +109,7 @@ public class ReplicationSummaryRunnerIntegrationTest extends AbstractIntegration
 
     Map<String, Object> bulkSubmission = summaries.get(BULK_SUBMISSION_INDEX);
     Map<String, Object> submission = summaries.get(SUBMISSION_INDEX);
+    Map<String, Object> submissionMetadata = summaries.get(SUBMISSION_METADATA_INDEX);
 
     assertThat(bulkSubmission.get("table_name")).isEqualTo("claims.bulk_submission");
     assertThat(((Number) bulkSubmission.get("record_count")).longValue()).isEqualTo(2L);
@@ -100,5 +118,37 @@ public class ReplicationSummaryRunnerIntegrationTest extends AbstractIntegration
     assertThat(submission.get("table_name")).isEqualTo("claims.submission");
     assertThat(((Number) submission.get("record_count")).longValue()).isEqualTo(3L);
     assertThat(((Number) submission.get("updated_count")).longValue()).isEqualTo(2L);
+
+    assertThat(submissionMetadata.get("table_name")).isEqualTo("claims.submission_metadata");
+    assertThat(((Number) submissionMetadata.get("record_count")).longValue()).isEqualTo(2L);
+    assertThat(((Number) submissionMetadata.get("updated_count")).longValue()).isEqualTo(1L);
+  }
+
+  @Test
+  void shouldMaintainMetadataAuditTimestamps() {
+    UUID id = UUID.randomUUID();
+    submissionMetadataRepository.saveAndFlush(
+        SubmissionMetadata.builder()
+            .id(id)
+            .submissionId(UUID.fromString("22222222-2222-2222-2222-222222222224"))
+            .sourceFileFormat("ONLINE")
+            .build());
+
+    SubmissionMetadata metadata = submissionMetadataRepository.findById(id).orElseThrow();
+    Instant createdOn = metadata.getCreatedOn();
+    assertThat(createdOn).isNotNull();
+    assertThat(metadata.getUpdatedOn()).isNotNull();
+
+    jdbcTemplate.update(
+        "UPDATE claims.submission_metadata SET updated_on = now() - interval '2 day' WHERE id = ?",
+        id);
+    metadata = submissionMetadataRepository.findById(id).orElseThrow();
+    Instant previousUpdatedOn = metadata.getUpdatedOn();
+    metadata.setSpreadsheetPlatform("MAC");
+    submissionMetadataRepository.saveAndFlush(metadata);
+
+    SubmissionMetadata updated = submissionMetadataRepository.findById(id).orElseThrow();
+    assertThat(updated.getCreatedOn()).isEqualTo(createdOn);
+    assertThat(updated.getUpdatedOn()).isAfter(previousUpdatedOn);
   }
 }
