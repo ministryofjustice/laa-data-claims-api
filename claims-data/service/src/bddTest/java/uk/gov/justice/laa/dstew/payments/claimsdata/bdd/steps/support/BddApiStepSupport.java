@@ -13,6 +13,7 @@ import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestCon
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.GET_SUBMISSION_BY_ID_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.PATCH_BULK_SUBMISSION_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.PATCH_CLAIM_AMENDMENT_PATH;
+import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.PATCH_SUBMISSION_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.POLL_INTERVAL;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.POST_BULK_SUBMISSION_PATH;
 import static uk.gov.justice.laa.dstew.payments.claimsdata.bdd.config.BddTestConstants.VOID_CLAIM_PATH;
@@ -527,6 +528,26 @@ public class BddApiStepSupport {
         new HttpEntity<>(patch, headers),
         Void.class,
         bulkSubmissionId);
+  }
+
+  public void patchSubmission(UUID submissionId, String patchJson) {
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    headers.add(AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN);
+    try {
+      ResponseEntity<String> response =
+          restTemplate.exchange(
+              serverInfo.baseUrl() + PATCH_SUBMISSION_PATH,
+              HttpMethod.PATCH,
+              new HttpEntity<>(patchJson, headers),
+              String.class,
+              submissionId);
+      context.setLastStatusCode(response.getStatusCode().value());
+      context.setLastResponseBody(parseBodyOrNull(response.getBody()));
+    } catch (HttpStatusCodeException ex) {
+      context.setLastStatusCode(ex.getStatusCode().value());
+      context.setLastResponseBody(parseBodyOrNull(ex.getResponseBodyAsString()));
+    }
   }
 
   // ---------------------------------------------------------------------------

@@ -126,6 +126,9 @@ public final class BddTestConstants {
   /** {@code GET /api/v1/submissions/{id}}. */
   public static final String GET_SUBMISSION_BY_ID_PATH = GET_SUBMISSIONS_PATH + "/{id}";
 
+  /** {@code PATCH /api/v1/submissions/{id}}. */
+  public static final String PATCH_SUBMISSION_PATH = GET_SUBMISSION_BY_ID_PATH;
+
   /** {@code POST /api/v1/submissions/{id}/claims}. */
   public static final String CREATE_CLAIM_PATH = GET_SUBMISSION_BY_ID_PATH + "/claims";
 

@@ -90,6 +90,7 @@ class SubmissionMapperTest {
   @DisplayName("maps Submission entity to SubmissionBase model")
   void shouldMapToSubmissionBase() {
     UUID id = Uuid7.timeBasedUuid();
+    Instant approvedOn = Instant.parse("2026-01-01T09:00:00Z");
     Submission submission =
         Submission.builder()
             .id(id)
@@ -100,6 +101,8 @@ class SubmissionMapperTest {
             .isNilSubmission(false)
             .numberOfClaims(2)
             .createdOn(LocalDate.of(2025, 5, 20).atStartOfDay(ZoneOffset.UTC).toInstant())
+            .approvedOn(approvedOn)
+            .approvedByUserId("approval-user")
             .build();
 
     SubmissionBase result = submissionMapper.toSubmissionBase(submission);
@@ -108,21 +111,28 @@ class SubmissionMapperTest {
     assertThat(result.getOfficeAccountNumber()).isEqualTo("12345");
     assertThat(result.getSubmissionPeriod()).isEqualTo("2025-07");
     assertThat(result.getSubmitted()).isEqualTo(SUBMITTED_DATE);
+    assertThat(result.getApprovedOn().toInstant()).isEqualTo(approvedOn);
+    assertThat(result.getApprovedByUserId()).isEqualTo("approval-user");
   }
 
   @Test
   @DisplayName("leaves nested response collections for service-layer enrichment")
   void shouldLeaveNestedCollectionsUnmappedInSubmissionResponse() {
+    Instant approvedOn = Instant.parse("2026-01-01T09:00:00Z");
     Submission submission =
         Submission.builder()
             .id(Uuid7.timeBasedUuid())
             .createdOn(LocalDate.of(2025, 5, 20).atStartOfDay(ZoneOffset.UTC).toInstant())
+            .approvedOn(approvedOn)
+            .approvedByUserId("approval-user")
             .build();
 
     var result = submissionMapper.toSubmissionResponse(submission);
 
     assertThat(result.getClaims()).isEmpty();
     assertThat(result.getMatterStarts()).isEmpty();
+    assertThat(result.getApprovedOn().toInstant()).isEqualTo(approvedOn);
+    assertThat(result.getApprovedByUserId()).isEqualTo("approval-user");
   }
 
   @Test
