@@ -1,6 +1,7 @@
 package uk.gov.justice.laa.dstew.payments.claimsdata.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentCaptor.forClass;
 import static org.mockito.Mockito.*;
@@ -111,6 +112,40 @@ class SubmissionEventPublisherServiceTest {
         .containsEntry("SubmissionEventType", expectedAttributeValue);
 
     verifyNoMoreInteractions(snsClient);
+  }
+
+  @Test
+  @DisplayName(
+      "publishSubmissionApprovalEvent publishes approval event with correct payload and attributes")
+  void publish_ApproveSubmissionEvent_sendsMessageWithCorrectPayload() {
+    UUID submissionId = Uuid7.timeBasedUuid();
+
+    submissionEventPublisherService.publishSubmissionApprovalEvent(submissionId);
+
+    var captor = forClass(PublishRequest.class);
+    verify(snsClient).publish(captor.capture());
+
+    PublishRequest publishRequest = captor.getValue();
+    assertThat(publishRequest.message()).contains(submissionId.toString());
+    assertThat(publishRequest.messageAttributes())
+        .containsEntry(
+            "SubmissionEventType",
+            MessageAttributeValue.builder()
+                .dataType("String")
+                .stringValue(SubmissionEventType.APPROVE_SUBMISSION.toString())
+                .build());
+
+    verifyNoMoreInteractions(snsClient);
+  }
+
+  @Test
+  @DisplayName("publishSubmissionApprovalEvent rejects a null submission id without publishing")
+  void publish_ApproveSubmissionEvent_rejectsNullSubmissionId() {
+    assertThatThrownBy(() -> submissionEventPublisherService.publishSubmissionApprovalEvent(null))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Submission id must be provided");
+
+    verifyNoInteractions(snsClient);
   }
 
   @Test
